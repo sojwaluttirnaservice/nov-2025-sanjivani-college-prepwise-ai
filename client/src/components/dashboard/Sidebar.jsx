@@ -42,18 +42,21 @@ const Sidebar = ({ roleName, links = [], onLogout }) => {
                         to={link.path}
                         end={link.exact}
                         className={({ isActive }) =>
-                            `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${isActive
-                                ? 'bg-indigo-50 text-indigo-700 shadow-sm'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            `flex items-center px-4 py-3 text-sm font-bold rounded-xl transition-all duration-300 group relative ${isActive
+                                ? 'bg-indigo-50/50 text-indigo-700'
+                                : 'text-gray-500 hover:bg-slate-50 hover:text-slate-900'
                             }`
                         }
                     >
                         {({ isActive }) => (
                             <>
+                                {isActive && (
+                                    <div className="absolute left-0 top-3 bottom-3 w-1 bg-indigo-600 rounded-r-full shadow-[0_0_10px_rgba(79,70,229,0.4)] animate-in slide-in-from-left-1" />
+                                )}
                                 <link.icon
-                                    className={`w-5 h-5 mr-3 transition-colors ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'
+                                    className={`w-5 h-5 mr-3 transition-all duration-300 ${isActive ? 'text-indigo-600 scale-110' : 'text-gray-400 group-hover:text-gray-600'
                                         }`}
-                                    strokeWidth={2}
+                                    strokeWidth={2.5}
                                 />
                                 {link.label}
                             </>

@@ -9,23 +9,52 @@ import toast from 'react-hot-toast';
 const AssessmentAttemptView = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { subjectId, unitId, unitTitle, questions: initialQuestions } = location.state || {};
+    const { subjectId: stateSub, unitId: stateUnit, unitTitle: stateTitle, questions: initialQuestions } = location.state || {};
 
-    const [responses, setResponses] = useState({});
+    // Recover from SessionStorage if state is missing (refresh protection)
+    const [sessionData, setSessionData] = useState(() => {
+        const saved = sessionStorage.getItem('active_assessment');
+        return saved ? JSON.parse(saved) : null;
+    });
 
-    // Mandated: We rely on the questions passed via state from the generator view
-    // Fallback query if they refresh (though theoretically discouraged by rules)
+    const subjectId = stateSub || sessionData?.subjectId;
+    const unitId = stateUnit || sessionData?.unitId;
+    const unitTitle = stateTitle || sessionData?.unitTitle;
+    const questionsList = initialQuestions || sessionData?.questions;
+
+    const [responses, setResponses] = useState(() => {
+        const saved = sessionStorage.getItem('assessment_responses');
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    // Save session on mount or state change
+    React.useEffect(() => {
+        if (stateSub && stateUnit) {
+            const data = { subjectId: stateSub, unitId: stateUnit, unitTitle: stateTitle, questions: initialQuestions };
+            sessionStorage.setItem('active_assessment', JSON.stringify(data));
+            setSessionData(data);
+        }
+    }, [stateSub, stateUnit, stateTitle, initialQuestions]);
+
+    // Save responses on change
+    React.useEffect(() => {
+        sessionStorage.setItem('assessment_responses', JSON.stringify(responses));
+    }, [responses]);
+
+    // Mandated: We rely on the questions passed via state or recovered
     const { data: questions, isLoading } = useQuery({
         queryKey: ['assessment', subjectId, unitId],
         queryFn: () => studentService.startAssessment({ subjectId, unitId }),
-        enabled: !initialQuestions && !!subjectId && !!unitId,
-        initialData: initialQuestions
+        enabled: !questionsList && !!subjectId && !!unitId,
+        initialData: questionsList
     });
 
     // Submit Mutation
     const submitMutation = useMutation({
         mutationFn: (payload) => studentService.submitAssessment(payload),
         onSuccess: (data) => {
+            sessionStorage.removeItem('active_assessment');
+            sessionStorage.removeItem('assessment_responses');
             toast.success('Assessment submitted successfully!');
             navigate('/assessment/results', { state: { results: data, unitId, unitTitle } });
         },
@@ -35,17 +64,80 @@ const AssessmentAttemptView = () => {
     });
 
     if (!subjectId || !unitId) {
+        const handleLoadDemo = () => {
+            navigate(location.pathname, {
+                state: {
+                    subjectId: 'demo-sub',
+                    unitId: 'demo-unit',
+                    unitTitle: 'Demo: React Architecture & Design',
+                    questions: [
+                        {
+                            id: 'q1',
+                            question: 'What is the primary benefit of using React Hooks like useState and useEffect?',
+                            options: [
+                                'They allow you to use state and other React features without writing a class',
+                                'They improve the styling performance of the application',
+                                'They replace the need for Redux and other state management libraries',
+                                'They are primarily for server-side rendering optimizations'
+                            ],
+                        },
+                        {
+                            id: 'q2',
+                            question: 'Which of the following describes "Lifting State Up" in React?',
+                            options: [
+                                'Moving state to a child component to isolate complexity',
+                                'Moving state to the closest common ancestor of components that need it',
+                                'Storing state in a global variable outside the React tree',
+                                'Automatically syncing local state with a backend database'
+                            ],
+                        },
+                        {
+                            id: 'q3',
+                            question: 'How do you prevent a function from being re-created on every render in a component?',
+                            options: [
+                                'By using the useMemo hook',
+                                'By using the useCallback hook',
+                                'By defining the function outside the component scope',
+                                'Both B and C are correct'
+                            ],
+                        }
+                    ]
+                }
+            });
+        };
+
         return (
-            <div className="p-12 text-center bg-white rounded-3xl border border-slate-100 max-w-lg mx-auto mt-20">
-                <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Session Expired</h2>
-                <p className="text-gray-500 mb-6">Assessment sessions are temporary and cannot be resumed.</p>
-                <button
-                    onClick={() => navigate('/syllabus/subjects')}
-                    className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold"
-                >
-                    Back to Syllabus
-                </button>
+            <div className="p-12 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-100 max-w-xl mx-auto mt-20 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-amber-400"></div>
+
+                <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                    <AlertCircle className="w-10 h-10 text-amber-500" />
+                </div>
+
+                <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Session Inactive</h2>
+                <p className="text-slate-500 mb-10 text-lg leading-relaxed">
+                    Personalized assessments must be initiated via the <span className="text-indigo-600 font-bold">Curriculum Catalog</span> to ensure your results are correctly mapped to your performance history.
+                </p>
+
+                <div className="flex flex-col gap-4">
+                    <button
+                        onClick={() => navigate('/syllabus/subjects')}
+                        className="w-full bg-slate-900 text-white px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200"
+                    >
+                        Initialize Preparation
+                    </button>
+
+                    <button
+                        onClick={handleLoadDemo}
+                        className="w-full bg-white text-indigo-600 border-2 border-indigo-50 px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:border-indigo-100 hover:bg-indigo-50/30 transition-all"
+                    >
+                        Preview Design (Demo Mode)
+                    </button>
+
+                    <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        Design Demo for PrepWise AI v2.1
+                    </p>
+                </div>
             </div>
         );
     }
@@ -102,8 +194,8 @@ const AssessmentAttemptView = () => {
                                 onClick={handleSubmit}
                                 disabled={!isComplete || submitMutation.isPending}
                                 className={`px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 ${submitMutation.isPending
-                                        ? 'bg-slate-900 text-white cursor-wait'
-                                        : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100 disabled:opacity-50 disabled:shadow-none'
+                                    ? 'bg-slate-900 text-white cursor-wait'
+                                    : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100 disabled:opacity-50 disabled:shadow-none'
                                     }`}
                             >
                                 {submitMutation.isPending ? (
@@ -140,8 +232,8 @@ const AssessmentAttemptView = () => {
                                             key={opt}
                                             onClick={() => handleOptionChange(q.id, opt)}
                                             className={`text-left px-6 py-5 rounded-[1.5rem] border-2 transition-all duration-300 font-bold tracking-tight text-lg relative overflow-hidden group ${responses[q.id] === opt
-                                                    ? 'border-indigo-600 bg-indigo-50 text-indigo-900 shadow-inner'
-                                                    : 'border-slate-50 bg-slate-50/50 hover:border-indigo-200 hover:bg-white text-slate-600'
+                                                ? 'border-indigo-600 bg-indigo-50 text-indigo-900 shadow-inner'
+                                                : 'border-slate-50 bg-slate-50/50 hover:border-indigo-200 hover:bg-white text-slate-600'
                                                 }`}
                                         >
                                             {responses[q.id] === opt && (

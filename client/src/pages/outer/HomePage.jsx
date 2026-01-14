@@ -41,7 +41,7 @@ const HomePage = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row justify-center gap-4">
-                            <Link to="/auth/signup" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                            <Link to="/auth/register" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
                                 Get Started Free
                                 <ArrowRight size={20} />
                             </Link>
@@ -93,7 +93,7 @@ const HomePage = () => {
                         <p className="text-xl text-indigo-100 mb-10 max-w-2xl mx-auto relative z-10">
                             Join your fellow engineering students and elevate your preparation today.
                         </p>
-                        <Link to="/auth/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-slate-50 transition-all relative z-10 uppercase tracking-wide">
+                        <Link to="/auth/register" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-slate-50 transition-all relative z-10 uppercase tracking-wide">
                             Join Now
                         </Link>
                     </div>

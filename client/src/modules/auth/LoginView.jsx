@@ -4,7 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { setCredentials } from '../../redux/slices/authSlice';
 import { authService } from '../../services/authService';
@@ -100,7 +100,7 @@ const LoginView = () => {
             <div className="text-center mt-4">
                 <p className="text-sm text-gray-600">
                     Don't have an account? {' '}
-                    <a href="/auth/register" className="font-medium text-indigo-600 hover:text-indigo-500">Register here</a>
+                    <Link to="/auth/register" className="font-medium text-indigo-600 hover:text-indigo-500">Register here</Link>
                 </p>
             </div>
 

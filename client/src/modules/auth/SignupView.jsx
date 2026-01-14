@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { authService } from '../../services/authService';
 import clientConfig from '../../config/clientConfig';
@@ -145,7 +145,7 @@ const SignupView = () => {
             <div className="text-center mt-4">
                 <p className="text-sm text-gray-600">
                     Already have an account? {' '}
-                    <a href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</a>
+                    <Link to="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</Link>
                 </p>
             </div>
         </div>

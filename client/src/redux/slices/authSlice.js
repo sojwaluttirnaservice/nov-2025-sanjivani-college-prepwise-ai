@@ -34,6 +34,7 @@ const authSlice = createSlice({
 
       localStorage.removeItem("user");
       localStorage.removeItem("token");
+      sessionStorage.clear(); // Clear assessment sessions
     },
   },
 });

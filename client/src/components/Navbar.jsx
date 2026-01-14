@@ -45,9 +45,18 @@ const Navbar = () => {
 
                         {/* Navigation Links */}
                         <div className="hidden md:flex items-center space-x-8 font-medium text-gray-600">
-                            <NavLink to={'/'} className={({ isActive }) => `hover:text-indigo-600 transition-colors ${isActive ? 'text-indigo-600' : ''}`}>Home</NavLink>
-                            <NavLink to={'/about'} className={({ isActive }) => `hover:text-indigo-600 transition-colors ${isActive ? 'text-indigo-600' : ''}`}>About</NavLink>
-                            <NavLink to={'/contact'} className={({ isActive }) => `hover:text-indigo-600 transition-colors ${isActive ? 'text-indigo-600' : ''}`}>Contact</NavLink>
+                            <NavLink to={'/'} className={({ isActive }) => `relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold' : ''}`}>
+                                Home
+                                {({ isActive }) => isActive && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500"></span>}
+                            </NavLink>
+                            <NavLink to={'/about'} className={({ isActive }) => `relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold' : ''}`}>
+                                About
+                                {({ isActive }) => isActive && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500"></span>}
+                            </NavLink>
+                            <NavLink to={'/contact'} className={({ isActive }) => `relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold' : ''}`}>
+                                Contact
+                                {({ isActive }) => isActive && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500"></span>}
+                            </NavLink>
                         </div>
 
                         {/* Action Buttons */}
