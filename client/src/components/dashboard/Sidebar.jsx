@@ -3,16 +3,21 @@ import { NavLink } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { logout } from '../../redux/slices/authSlice'
+import clientConfig from '../../config/clientConfig'
 
 const Sidebar = ({ roleName, links = [] }) => {
     const dispatch = useDispatch()
+
+    const appNameParts = clientConfig.APP_NAME.split(' ')
+    const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
+    const lastPart = appNameParts.length > 1 ? appNameParts[appNameParts.length - 1] : ''
 
     return (
         <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col h-screen fixed left-0 top-0 z-10 font-sans">
             {/* Logo / Brand */}
             <div className="h-16 flex items-center px-6 border-b border-gray-100">
                 <div className="text-xl font-bold text-gray-900 tracking-tight">
-                    PrepWise <span className="text-indigo-600">AI</span>
+                    {firstPart} {lastPart && <span className="text-indigo-600">{lastPart}</span>}
                 </div>
                 <span className="ml-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider bg-gray-100 px-2 py-0.5 rounded">
                     {roleName}

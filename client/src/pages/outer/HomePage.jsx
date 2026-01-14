@@ -1,7 +1,7 @@
 import Container from '../../components/utils/Container'
-import { useSelector } from 'react-redux'
 import { BookOpen, Target, Brain, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import clientConfig from '../../config/clientConfig'
 
 const FeatureCard = ({ icon: Icon, title, description, color }) => {
     return (
@@ -57,7 +57,7 @@ const HomePage = () => {
             <section className="py-24 bg-white">
                 <Container>
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Why PrepWise AI?</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Why {clientConfig.APP_NAME}?</h2>
                         <p className="text-slate-600 max-w-2xl mx-auto">We use advanced AI to help you focus on what really matters for your exams.</p>
                     </div>
 

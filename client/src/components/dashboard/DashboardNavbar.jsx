@@ -2,15 +2,19 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../../redux/slices/authSlice'
 import { Bell, User } from 'lucide-react'
+import clientConfig from '../../config/clientConfig'
 
 const DashboardNavbar = () => {
     const user = useSelector(selectCurrentUser)
+
+    const appNameParts = clientConfig.APP_NAME.split(' ')
+    const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
 
     return (
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-10">
             {/* Left side (Mobile Toggle placeholder could go here) */}
             <div className="flex items-center md:hidden">
-                <div className="text-xl font-bold text-indigo-600">PrepWise</div>
+                <div className="text-xl font-bold text-indigo-600">{firstPart}</div>
             </div>
 
             {/* Title / Breadcrumbs (Optional) */}

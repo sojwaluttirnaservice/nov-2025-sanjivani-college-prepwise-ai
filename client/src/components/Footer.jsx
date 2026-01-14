@@ -1,8 +1,12 @@
-import React from 'react'
+import clientConfig from '../config/clientConfig'
 import { Link } from 'react-router-dom'
 import Container from './utils/Container'
 
 const Footer = () => {
+    const appNameParts = clientConfig.APP_NAME.split(' ')
+    const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
+    const lastPart = appNameParts.length > 1 ? appNameParts[appNameParts.length - 1] : ''
+
     return (
         <footer className="mt-auto bg-gray-50 border-t border-gray-100 pt-16 pb-8">
             <Container>
@@ -15,7 +19,9 @@ const Footer = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                             </div>
-                            <span className="text-xl font-bold text-gray-900 tracking-tight">PrepWise <span className="text-indigo-600">AI</span></span>
+                            <span className="text-xl font-bold text-gray-900 tracking-tight">
+                                {firstPart} {lastPart && <span className="text-indigo-600">{lastPart}</span>}
+                            </span>
                         </Link>
                         <p className="text-gray-500 leading-relaxed">
                             Empowering engineering students with personalized AI-based assessments for excellence in semester preparation.
@@ -79,7 +85,7 @@ const Footer = () => {
 
                 <div className="border-t border-gray-100 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-gray-400 text-sm">
-                        © {new Date().getFullYear()} PrepWise AI. All rights reserved.
+                        © {new Date().getFullYear()} {clientConfig.APP_NAME}. All rights reserved.
                     </p>
                     <div className="flex gap-6 text-sm text-gray-400">
                         <Link to="/" className="hover:text-indigo-600 transition-colors">Privacy Policy</Link>

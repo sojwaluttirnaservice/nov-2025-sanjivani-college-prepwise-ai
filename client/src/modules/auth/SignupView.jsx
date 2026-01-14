@@ -1,4 +1,5 @@
 import React from 'react';
+import clientConfig from '../../config/clientConfig';
 
 const SignupView = () => {
     return (
@@ -6,7 +7,7 @@ const SignupView = () => {
             <div>
                 <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
                 <p className="mt-2 text-sm text-gray-600">
-                    Join PrepWise AI and start your exam preparation
+                    Join {clientConfig.APP_NAME} and start your exam preparation
                 </p>
             </div>
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import clientConfig from '../../config/clientConfig';
 
 const LoginView = () => {
     return (
@@ -6,7 +7,7 @@ const LoginView = () => {
             <div>
                 <h2 className="text-2xl font-bold text-gray-900">Sign in to your account</h2>
                 <p className="mt-2 text-sm text-gray-600">
-                    Use your college credentials to access PrepWise AI
+                    Use your college credentials to access {clientConfig.APP_NAME}
                 </p>
             </div>
 

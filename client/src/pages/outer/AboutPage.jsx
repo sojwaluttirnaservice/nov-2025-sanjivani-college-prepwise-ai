@@ -1,14 +1,15 @@
 import React from 'react';
 import Container from '../../components/utils/Container';
+import clientConfig from '../../config/clientConfig';
 
 const AboutPage = () => {
     return (
         <div className="py-20">
             <Container>
                 <div className="max-w-3xl mx-auto">
-                    <h1 className="text-4xl font-bold text-slate-900 mb-6 font-sans">About PrepWise AI</h1>
+                    <h1 className="text-4xl font-bold text-slate-900 mb-6 font-sans">About {clientConfig.APP_NAME}</h1>
                     <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                        PrepWise AI is an initiative to help engineering students bridge the gap between curriculum and exam preparation. Our system uses artificial intelligence to generate high-quality assessments that mirror actual exam standards.
+                        {clientConfig.APP_NAME} is an initiative to help engineering students bridge the gap between curriculum and exam preparation. Our system uses artificial intelligence to generate high-quality assessments that mirror actual exam standards.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
                         <div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import Container from '../../components/utils/Container';
+import clientConfig from '../../config/clientConfig';
 
 const ContactPage = () => {
     return (
@@ -10,7 +11,7 @@ const ContactPage = () => {
                         <div className="p-8 md:p-12 bg-indigo-600 text-white">
                             <h2 className="text-3xl font-bold mb-6">Get in Touch</h2>
                             <p className="text-indigo-100 mb-8">
-                                Have questions about PrepWise AI? We're here to help you succeed.
+                                Have questions about {clientConfig.APP_NAME}? We're here to help you succeed.
                             </p>
                             <div className="space-y-4">
                                 <div className="flex items-center gap-4">

@@ -6,11 +6,17 @@ import { selectCurrentUser, selectIsAuthenticated, logout } from '../redux/slice
 import message from '../utils/message'
 import { LogOut, User } from 'lucide-react'
 
+import clientConfig from '../config/clientConfig'
+
 const Navbar = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const isAuthenticated = useSelector(selectIsAuthenticated)
     const user = useSelector(selectCurrentUser)
+
+    const appNameParts = clientConfig.APP_NAME.split(' ')
+    const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
+    const lastPart = appNameParts.length > 1 ? appNameParts[appNameParts.length - 1] : ''
 
     const handleLogout = () => {
         dispatch(logout())
@@ -23,7 +29,6 @@ const Navbar = () => {
             <Container>
                 <div className="py-4">
                     <div className="flex items-center justify-between">
-
                         {/* Logo Section */}
                         <Link to={'/'} className="flex items-center gap-2 group">
                             <div className="bg-indigo-600 text-white p-2 rounded-lg group-hover:bg-indigo-700 transition-colors">
@@ -31,7 +36,9 @@ const Navbar = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                             </div>
-                            <span className="text-xl font-bold text-gray-900 tracking-tight">PrepWise <span className="text-indigo-600">AI</span></span>
+                            <span className="text-xl font-bold text-gray-900 tracking-tight">
+                                {firstPart} {lastPart && <span className="text-indigo-600">{lastPart}</span>}
+                            </span>
                         </Link>
 
 
