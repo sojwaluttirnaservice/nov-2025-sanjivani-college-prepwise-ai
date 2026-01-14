@@ -1,22 +1,23 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { LayoutDashboard, Users, Activity, ClipboardList, LogOut } from 'lucide-react';
+import { BarChart2, Book, CheckSquare, ClipboardList, User, LogOut } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
 import DashboardNavbar from '../components/dashboard/DashboardNavbar';
 import { selectCurrentUser, logout } from '../redux/slices/authSlice';
 import toast from 'react-hot-toast';
 
-const AdminLayout = () => {
+const StudentLayout = () => {
     const user = useSelector(selectCurrentUser);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const adminLinks = [
-        { path: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
-        { path: '/admin/students', label: 'Students', icon: Users },
-        { path: '/admin/assessments', label: 'Assessments', icon: ClipboardList },
-        { path: '/admin/activity', label: 'System Activity', icon: Activity },
+    const studentLinks = [
+        { path: '/student/stats', label: 'My Performance', icon: BarChart2 },
+        { path: '/syllabus', label: 'Syllabus', icon: Book },
+        { path: '/assessment/start', label: 'New Assessment', icon: CheckSquare },
+        { path: '/assessment/results', label: 'Past Results', icon: ClipboardList },
+        { path: '/student/profile', label: 'My Profile', icon: User },
     ];
 
     const handleLogout = () => {
@@ -28,8 +29,8 @@ const AdminLayout = () => {
     return (
         <div className="flex bg-slate-50 min-h-screen">
             <Sidebar
-                roleName="ADMIN"
-                links={adminLinks}
+                roleName="STUDENT"
+                links={studentLinks}
                 onLogout={handleLogout}
             />
             <div className="flex-1 md:ml-64 flex flex-col">
@@ -42,4 +43,4 @@ const AdminLayout = () => {
     );
 };
 
-export default AdminLayout;
+export default StudentLayout;

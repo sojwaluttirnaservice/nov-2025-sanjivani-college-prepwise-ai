@@ -1,0 +1,50 @@
+export const STUDENT_STATS = {
+  completedAssessments: 12,
+  averageScore: 82,
+  studyHours: 45,
+  weakTopicsCount: 4,
+  recentTests: [
+    {
+      id: 1,
+      subject: "Operating Systems",
+      unit: "Unit 3: Process Sync",
+      score: "90%",
+      date: "2 hours ago",
+      status: "Passed",
+    },
+    {
+      id: 2,
+      subject: "Database Systems",
+      unit: "Unit 2: SQL",
+      score: "72%",
+      date: "Yesterday",
+      status: "Average",
+    },
+    {
+      id: 3,
+      subject: "Software Engineering",
+      unit: "Unit 1: Agile",
+      score: "95%",
+      date: "2 days ago",
+      status: "Passed",
+    },
+    {
+      id: 4,
+      subject: "Computer Networks",
+      unit: "Unit 4: Transport Layer",
+      score: "55%",
+      date: "4 days ago",
+      status: "Failed",
+    },
+  ],
+  weakTopics: [
+    { name: "Deadlock Avoidance", subject: "Operating Systems", level: "High" },
+    { name: "B+ Tree Indexing", subject: "Database Systems", level: "Medium" },
+    { name: "Normal Forms", subject: "Database Systems", level: "High" },
+    {
+      name: "TCP Congestion Control",
+      subject: "Computer Networks",
+      level: "Medium",
+    },
+  ],
+};

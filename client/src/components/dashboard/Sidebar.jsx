@@ -1,16 +1,26 @@
 import React from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { logout } from '../../redux/slices/authSlice'
 import clientConfig from '../../config/clientConfig'
 
-const Sidebar = ({ roleName, links = [] }) => {
+const Sidebar = ({ roleName, links = [], onLogout }) => {
     const dispatch = useDispatch()
+    const navigate = useNavigate()
 
     const appNameParts = clientConfig.APP_NAME.split(' ')
     const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
     const lastPart = appNameParts.length > 1 ? appNameParts[appNameParts.length - 1] : ''
+
+    const handleLogout = () => {
+        if (onLogout) {
+            onLogout()
+        } else {
+            dispatch(logout())
+            navigate('/auth/login')
+        }
+    }
 
     return (
         <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col h-screen fixed left-0 top-0 z-10 font-sans">
@@ -55,7 +65,7 @@ const Sidebar = ({ roleName, links = [] }) => {
             {/* Bottom Actions */}
             <div className="p-4 border-t border-gray-100">
                 <button
-                    onClick={() => dispatch(logout())}
+                    onClick={handleLogout}
                     className="flex items-center w-full px-3 py-2.5 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                 >
                     <LogOut className="w-5 h-5 mr-3" />

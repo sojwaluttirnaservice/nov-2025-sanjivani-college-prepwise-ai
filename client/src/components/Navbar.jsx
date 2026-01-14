@@ -6,6 +6,7 @@ import { selectCurrentUser, selectIsAuthenticated, logout } from '../redux/slice
 import message from '../utils/message'
 import { LogOut, User } from 'lucide-react'
 
+import toast from 'react-hot-toast'
 import clientConfig from '../config/clientConfig'
 
 const Navbar = () => {
@@ -20,7 +21,7 @@ const Navbar = () => {
 
     const handleLogout = () => {
         dispatch(logout())
-        message.success('Logged out successfully')
+        toast.success('Logged out successfully')
         navigate('/auth/login')
     }
 
@@ -53,12 +54,7 @@ const Navbar = () => {
                         <div className="flex items-center gap-4">
                             {isAuthenticated ? (
                                 <div className="flex items-center gap-4">
-                                    <div className="hidden sm:flex items-center gap-2 text-gray-700 font-medium bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
-                                        <div className="bg-indigo-100 p-1 rounded-full text-indigo-600">
-                                            <User className="w-4 h-4" />
-                                        </div>
-                                        <span className="text-sm">{user?.email?.split('@')[0]}</span>
-                                    </div>
+                                    <NavLink to={user?.role === 'ADMIN' ? '/admin' : '/student/stats'} className="text-gray-600 hover:text-indigo-600 font-medium transition-colors">Dashboard</NavLink>
                                     <button
                                         onClick={handleLogout}
                                         className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 font-medium rounded-lg transition-all duration-300"
@@ -72,7 +68,7 @@ const Navbar = () => {
                                     <NavLink to={'/auth/login'} className="hidden sm:block text-gray-600 hover:text-indigo-600 font-medium transition-colors">
                                         Log In
                                     </NavLink>
-                                    <NavLink to={'/auth/signup'} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+                                    <NavLink to={'/auth/register'} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
                                         Join Now
                                     </NavLink>
                                 </>
