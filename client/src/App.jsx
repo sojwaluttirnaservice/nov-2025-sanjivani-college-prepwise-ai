@@ -18,21 +18,25 @@ import ContactPage from './pages/outer/ContactPage'
 import LoginPage from './pages/auth/LoginPage'
 import SignupPage from './pages/auth/SignupPage'
 import StudentDashboard from './pages/student/StudentDashboard'
+import SubjectSelectionPage from './pages/student/SubjectSelectionPage'
+import UnitSelectionPage from './pages/student/UnitSelectionPage'
+import AssessmentAttemptPage from './pages/student/AssessmentAttemptPage'
+import AssessmentResultsPage from './pages/student/AssessmentResultsPage'
+import StudentProfilePage from './pages/student/StudentProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 
 const App = () => {
     return (
         <Routes>
-            {/* PUBLIC ROUTES (Unauthenticated Only) */}
-            <Route element={<PublicRoute />}>
-                {/* Landing Pages Group */}
-                <Route element={<MainLayout />}>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/contact" element={<ContactPage />} />
-                </Route>
+            {/* ACCESSIBLE TO EVERYONE (Public & Auth) */}
+            <Route element={<MainLayout />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+            </Route>
 
-                {/* Authentication Group */}
+            {/* PUBLIC ONLY (Redirects if logged in) */}
+            <Route element={<PublicRoute />}>
                 <Route path="/auth" element={<AuthLayout />}>
                     <Route path="login" element={<LoginPage />} />
                     <Route path="register" element={<SignupPage />} />
@@ -43,17 +47,15 @@ const App = () => {
             <Route element={<ProtectedRoute allowedRoles={[ROLES.STUDENT]} />}>
                 <Route element={<StudentLayout />}>
                     <Route path="/student/stats" element={<StudentDashboard />} />
-                    <Route path="/student/profile" element={<div>Student Profile Page</div>} />
+                    <Route path="/student/profile" element={<StudentProfilePage />} />
 
                     {/* Syllabus Section */}
-                    <Route path="/syllabus" element={<div>Syllabus Overview</div>} />
-                    <Route path="/syllabus/subjects" element={<div>Subjects List</div>} />
-                    <Route path="/syllabus/subjects/:subjectId" element={<div>Subject Details</div>} />
+                    <Route path="/syllabus/subjects" element={<SubjectSelectionPage />} />
+                    <Route path="/syllabus/subjects/:subjectId" element={<UnitSelectionPage />} />
 
                     {/* Assessment Section */}
-                    <Route path="/assessment/start" element={<div>Start Assessment</div>} />
-                    <Route path="/assessment/attempt" element={<div>Attempt Assessment (10 MCQs)</div>} />
-                    <Route path="/assessment/results" element={<div>Assessment Results</div>} />
+                    <Route path="/assessment/attempt" element={<AssessmentAttemptPage />} />
+                    <Route path="/assessment/results" element={<AssessmentResultsPage />} />
                 </Route>
             </Route>
 

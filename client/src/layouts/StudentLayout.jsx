@@ -14,8 +14,8 @@ const StudentLayout = () => {
 
     const studentLinks = [
         { path: '/student/stats', label: 'My Performance', icon: BarChart2 },
-        { path: '/syllabus', label: 'Syllabus', icon: Book },
-        { path: '/assessment/start', label: 'New Assessment', icon: CheckSquare },
+        { path: '/syllabus/subjects', label: 'Syllabus', icon: Book },
+        { path: '/assessment/attempt', label: 'New Assessment', icon: CheckSquare },
         { path: '/assessment/results', label: 'Past Results', icon: ClipboardList },
         { path: '/student/profile', label: 'My Profile', icon: User },
     ];
@@ -23,7 +23,7 @@ const StudentLayout = () => {
     const handleLogout = () => {
         dispatch(logout());
         toast.success('Logged out successfully');
-        navigate('/login');
+        navigate('/auth/login');
     };
 
     return (

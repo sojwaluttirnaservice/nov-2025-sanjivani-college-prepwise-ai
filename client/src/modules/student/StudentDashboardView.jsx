@@ -30,94 +30,137 @@ const StudentDashboardView = () => {
     ];
 
     return (
-        <div className="py-8">
+        <div className="py-8 bg-slate-50/30 min-h-screen">
             <Container>
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                        Welcome back, {user?.name?.split(' ')[0] || 'Student'}! 👋
-                    </h1>
-                    <p className="text-gray-600">Here's your preparation overview for Semester 6.</p>
+                {/* Dashboard Welcome Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+                    <div>
+                        <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">
+                            Dashboard Pulse <span className="text-indigo-600">.</span>
+                        </h1>
+                        <p className="text-gray-500 font-medium">Monitoring preparation for Semester 6 finals.</p>
+                    </div>
+                    <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-6">
+                        <div className="text-center">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Health Index</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-lg font-bold text-gray-900">Optimal</span>
+                            </div>
+                        </div>
+                        <div className="w-px h-8 bg-slate-100"></div>
+                        <div className="text-center">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Next Goal</p>
+                            <p className="text-lg font-bold text-indigo-600">Unit 3 DBMS</p>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Performance Analytics Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10">
                     {statCards.map((stat, index) => (
-                        <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow cursor-default">
-                            <div className={`${stat.bg} ${stat.color} p-3 rounded-xl`}>
+                        <div key={index} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+                            <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-110`}></div>
+                            <div className={`${stat.bg} ${stat.color} p-3 rounded-2xl w-fit mb-4 relative z-10`}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                            <div className="relative z-10">
+                                <p className="text-sm text-gray-500 font-bold uppercase tracking-tight mb-1">{stat.label}</p>
+                                <p className="text-3xl font-black text-gray-900 tracking-tighter">{stat.value}</p>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Recent Assessments */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gray-50/50">
-                                <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-indigo-600" />
-                                    Recent Assessments
-                                </h2>
-                                <button className="text-indigo-600 text-sm font-semibold hover:text-indigo-700 transition-colors">View All</button>
+                {/* Main Dashboard Interaction Area */}
+                {!stats?.recentTests || stats.recentTests.length === 0 ? (
+                    <div className="bg-indigo-600 rounded-[2.5rem] p-16 text-center shadow-2xl shadow-indigo-200 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                        <div className="relative z-10">
+                            <div className="bg-white/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 backdrop-blur-md border border-white/30">
+                                <BookOpen className="w-12 h-12 text-white" />
                             </div>
-                            <div className="divide-y divide-slate-100">
-                                {stats?.recentTests.map((test) => (
-                                    <div key={test.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                                        <div className="space-y-1">
-                                            <p className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{test.subject}</p>
-                                            <p className="text-sm text-gray-500">{test.unit}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`font-bold ${parseInt(test.score) >= 80 ? 'text-emerald-600' : parseInt(test.score) >= 60 ? 'text-amber-600' : 'text-red-600'}`}>{test.score}</p>
-                                            <p className="text-xs text-gray-400 capitalize">{test.date}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Sidebar / Weak Topics */}
-                    <div className="space-y-6">
-                        <div className="bg-indigo-600 p-6 rounded-xl shadow-lg shadow-indigo-100 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
-                            <h2 className="font-bold text-white mb-2 relative z-10">Start Preparation</h2>
-                            <p className="text-indigo-100 text-sm mb-4 relative z-10">Generate a new 10-question AI assessment.</p>
-                            <button className="w-full bg-white text-indigo-600 py-2.5 rounded-lg font-bold hover:bg-slate-50 transition-colors shadow-sm relative z-10 flex items-center justify-center gap-2">
-                                Launch Quiz
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-red-500" />
-                                Growth Areas
-                            </h2>
-                            <div className="space-y-3">
-                                {stats?.weakTopics.map((topic, i) => (
-                                    <div key={i} className="group p-3 rounded-lg bg-slate-50 border border-slate-100 hover:border-red-100 hover:bg-red-50 transition-all">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <p className="text-sm font-semibold text-gray-900 group-hover:text-red-700 transition-colors">{topic.name}</p>
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${topic.level === 'High' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                {topic.level} Priority
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-gray-500">{topic.subject}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            <button className="w-full mt-4 text-center text-xs font-semibold text-gray-400 hover:text-indigo-600 transition-colors uppercase tracking-wider">
-                                View Full Analysis
+                            <h2 className="text-4xl font-black text-white mb-4">Initialize Preparation</h2>
+                            <p className="text-indigo-100 text-lg mb-12 max-w-xl mx-auto leading-relaxed">
+                                You haven't generated any AI assessments yet. Start your journey by exploring the curriculum and taking your first diagnostic test.
+                            </p>
+                            <button
+                                onClick={() => window.location.href = '/syllabus/subjects'}
+                                className="bg-white text-indigo-700 px-10 py-4 rounded-2xl font-black hover:bg-slate-50 transition-all shadow-xl flex items-center gap-3 mx-auto uppercase tracking-widest text-sm"
+                            >
+                                Browse Subjects
+                                <ArrowRight className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                        {/* Timeline / Recent Activity */}
+                        <div className="lg:col-span-8">
+                            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-gray-50/30">
+                                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                                        <Clock className="w-6 h-6 text-indigo-600" />
+                                        Activity Log
+                                    </h2>
+                                    <button className="bg-white px-4 py-2 rounded-xl text-xs font-bold text-gray-500 border border-slate-100 hover:text-indigo-600 transition-colors">History</button>
+                                </div>
+                                <div className="divide-y divide-slate-50">
+                                    {stats?.recentTests.map((test) => (
+                                        <div key={test.id} className="p-8 flex items-center justify-between hover:bg-slate-50 transition-all duration-300 group">
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-white transition-colors border border-transparent group-hover:border-slate-100">
+                                                    <span className="font-black text-indigo-200 text-xl group-hover:text-indigo-600">{test.subject.charAt(0)}</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors tracking-tight">{test.subject}</p>
+                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{test.unit}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right flex items-center gap-8">
+                                                <div className="hidden sm:block">
+                                                    <p className="text-xs font-black text-slate-300 uppercase tracking-tighter mb-1">Score</p>
+                                                    <p className={`text-xl font-black ${parseInt(test.score) >= 80 ? 'text-emerald-500' : 'text-amber-500'}`}>{test.score}</p>
+                                                </div>
+                                                <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Risk Factors / Growth Areas */}
+                        <div className="lg:col-span-4 space-y-8">
+                            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                                        Gaps
+                                    </h2>
+                                    <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">Priority</span>
+                                </div>
+                                <div className="space-y-4">
+                                    {stats?.weakTopics.map((topic, i) => (
+                                        <div key={i} className="p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-red-100 hover:bg-white transition-all duration-300 cursor-pointer">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{topic.name}</p>
+                                                <div className={`w-2 h-2 rounded-full ${topic.level === 'High' ? 'bg-red-500' : 'bg-amber-500'}`}></div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <BookOpen className="w-3 h-3 text-slate-400" />
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{topic.subject}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button className="w-full mt-8 py-4 px-6 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-colors shadow-xl shadow-slate-100">
+                                    Analyze Gaps
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </Container>
         </div>
     );

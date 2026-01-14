@@ -10,9 +10,13 @@ import { selectIsAuthenticated, selectCurrentUser } from '../../redux/slices/aut
  */
 const PublicRoute = () => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
+    const user = useSelector(selectCurrentUser);
 
     if (isAuthenticated) {
-        // Authenticated users should never see login/register/landing
+        // Redirect based on role
+        if (user?.role === ROLES.ADMIN) {
+            return <Navigate to="/admin" replace />;
+        }
         return <Navigate to="/student/stats" replace />;
     }
 
