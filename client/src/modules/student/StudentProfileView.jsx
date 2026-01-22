@@ -1,23 +1,114 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { User, Mail, Hash, BookOpen, Calendar, GraduationCap, Settings, Award } from 'lucide-react';
-import { selectCurrentUser } from '../../redux/slices/authSlice';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { User, Mail, BookOpen, Calendar, GraduationCap, Settings, Award, Loader2 } from 'lucide-react';
+import { selectCurrentToken, selectCurrentUser, updateCurrentUser } from '../../redux/slices/authSlice';
+import { fetchBranches } from '../../redux/slices/resourceSlice';
+import { authService } from '../../services/authService';
+import { studentService } from '../../services/studentService';
+import message from '../../utils/message';
 import Container from '../../components/utils/Container';
 
+const profileSchema = yup.object().shape({
+    name: yup.string().required('Name is required').min(2, 'Name is too short'),
+    branchId: yup.string().required('Branch is required'),
+    semester: yup.number().required('Semester is required').min(1).max(8),
+});
+
 const StudentProfileView = () => {
+    const dispatch = useDispatch();
+    const queryClient = useQueryClient();
+    const token = useSelector(selectCurrentToken);
     const user = useSelector(selectCurrentUser);
+    const { branches, status: branchStatus } = useSelector((state) => state.resource);
+
+    const [isEditing, setIsEditing] = useState(false);
+
+    useEffect(() => {
+        dispatch(fetchBranches());
+    }, [dispatch]);
+
+    const { data: profile, isLoading: isProfileLoading } = useQuery({
+        queryKey: ['users-me'],
+        queryFn: authService.me,
+        enabled: !!token,
+    });
+
+    const { data: stats } = useQuery({
+        queryKey: ['student-stats'],
+        queryFn: studentService.getStats,
+        enabled: !!token,
+    });
+
+    useEffect(() => {
+        if (profile) {
+            dispatch(updateCurrentUser(profile));
+        }
+    }, [dispatch, profile]);
+
+    const currentUser = profile || user;
+
+    const currentBranchId = useMemo(() => {
+        const raw = currentUser?.branchId;
+        if (!raw) return '';
+        if (typeof raw === 'string') return raw;
+        return raw?._id || '';
+    }, [currentUser]);
+
+    const currentBranch = useMemo(() => {
+        if (!currentBranchId) return null;
+        return branches.find((b) => b._id === currentBranchId) || null;
+    }, [branches, currentBranchId]);
+
+    const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+        resolver: yupResolver(profileSchema),
+        defaultValues: {
+            name: '',
+            branchId: '',
+            semester: 1,
+        }
+    });
+
+    useEffect(() => {
+        if (!currentUser) return;
+
+        reset({
+            name: currentUser?.name || '',
+            branchId: currentBranchId || '',
+            semester: currentUser?.semester || 1,
+        });
+    }, [currentUser, currentBranchId, reset]);
+
+    const watchedSemester = Number(watch('semester') || 1);
+    const computedYear = Math.ceil(watchedSemester / 2);
+
+    const updateMutation = useMutation({
+        mutationFn: authService.updateMe,
+        onSuccess: (updatedUser) => {
+            queryClient.setQueryData(['users-me'], updatedUser);
+            dispatch(updateCurrentUser(updatedUser));
+            message.success('Profile updated successfully');
+            setIsEditing(false);
+        },
+        onError: (error) => {
+            message.error(error.message || 'Failed to update profile');
+        }
+    });
 
     const academicInfo = [
-        { label: 'Enrollment ID', value: user?.enrollmentId || 'ENR2024001', icon: Hash },
-        { label: 'Department', value: user?.department || 'Information Technology', icon: GraduationCap },
-        { label: 'Semester', value: user?.semester || 'Semester 6', icon: BookOpen },
-        { label: 'Academic Year', value: user?.academicYear || '2025-2026', icon: Calendar },
+        { label: 'Branch', value: currentBranch?.name || '—', icon: GraduationCap },
+        { label: 'Semester', value: currentUser?.semester ? `Semester ${currentUser.semester}` : '—', icon: BookOpen },
+        { label: 'Year', value: currentUser?.year ? `Year ${currentUser.year}` : '—', icon: Calendar },
+        { label: 'Standing', value: stats?.averageScore >= 80 ? 'Excellent' : stats?.averageScore >= 60 ? 'Good Standing' : 'Needs Support', icon: Award },
     ];
 
     const performanceMetrics = [
-        { label: 'Assessments Taken', value: '12', color: 'text-indigo-600' },
-        { label: 'Average Accuracy', value: '78%', color: 'text-emerald-600' },
-        { label: 'Top Subject', value: 'DBMS', color: 'text-amber-600' },
+        { label: 'Assessments Taken', value: stats?.completedAssessments || '0', color: 'text-indigo-600' },
+        { label: 'Average Accuracy', value: `${stats?.averageScore || 0}%`, color: 'text-emerald-600' },
+        { label: 'Study Hours', value: `${stats?.studyHours || 0}h`, color: 'text-amber-600' },
     ];
 
     return (
@@ -40,19 +131,32 @@ const StudentProfileView = () => {
 
                         <div className="text-center md:text-left space-y-2">
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">{user?.name || 'Academic Scholar'}</h1>
+                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">{currentUser?.name || 'Student'}</h1>
                                 <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-100">
-                                    Student
+                                    {currentUser?.role || 'User'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-center md:justify-start gap-2 text-slate-500 font-medium">
                                 <Mail className="w-4 h-4" />
-                                <span>{user?.email || 'scholar@sanjivani.edu.in'}</span>
+                                <span>{currentUser?.email || '—'}</span>
                             </div>
-                            <button className="mt-4 flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
-                                <Settings className="w-4 h-4" />
-                                Edit Account
-                            </button>
+                            <div className="mt-4 flex flex-wrap items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditing((v) => !v)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                                >
+                                    <Settings className="w-4 h-4" />
+                                    {isEditing ? 'Close Editor' : 'Edit Profile'}
+                                </button>
+
+                                {isProfileLoading && (
+                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Loading profile...
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -60,6 +164,110 @@ const StudentProfileView = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     {/* Academic Information */}
                     <div className="lg:col-span-7 space-y-8">
+                        {isEditing && (
+                            <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-slate-100">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-2xl font-black text-gray-900 flex items-center gap-4">
+                                        <Settings className="w-7 h-7 text-slate-900" />
+                                        Edit Profile
+                                    </h2>
+                                </div>
+
+                                <form className="space-y-6" onSubmit={handleSubmit((data) => {
+                                    updateMutation.mutate({
+                                        name: data.name,
+                                        branchId: data.branchId,
+                                        semester: Number(data.semester),
+                                    });
+                                })}>
+                                    <div>
+                                        <label htmlFor="name" className="block text-sm font-black text-slate-500 uppercase tracking-widest">Name</label>
+                                        <input
+                                            {...register('name')}
+                                            id="name"
+                                            type="text"
+                                            className={`mt-2 block w-full border ${errors.name ? 'border-red-500' : 'border-slate-200'} rounded-2xl shadow-sm py-3 px-4 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                                        />
+                                        {errors.name && <p className="mt-2 text-xs font-bold text-red-500">{errors.name.message}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="email" className="block text-sm font-black text-slate-500 uppercase tracking-widest">Email</label>
+                                        <input
+                                            id="email"
+                                            type="text"
+                                            disabled
+                                            value={currentUser?.email || ''}
+                                            className="mt-2 block w-full border border-slate-200 rounded-2xl shadow-sm py-3 px-4 sm:text-sm bg-slate-50 text-slate-500"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="branchId" className="block text-sm font-black text-slate-500 uppercase tracking-widest">Branch</label>
+                                            <select
+                                                {...register('branchId')}
+                                                id="branchId"
+                                                disabled={branchStatus === 'loading'}
+                                                className={`mt-2 block w-full border ${errors.branchId ? 'border-red-500' : 'border-slate-200'} rounded-2xl shadow-sm py-3 px-4 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-slate-50`}
+                                            >
+                                                <option value="">Select a branch</option>
+                                                {branches.map((branch) => (
+                                                    <option key={branch._id} value={branch._id}>{branch.name}</option>
+                                                ))}
+                                            </select>
+                                            {errors.branchId && <p className="mt-2 text-xs font-bold text-red-500">{errors.branchId.message}</p>}
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="semester" className="block text-sm font-black text-slate-500 uppercase tracking-widest">Semester</label>
+                                            <select
+                                                {...register('semester')}
+                                                id="semester"
+                                                className={`mt-2 block w-full border ${errors.semester ? 'border-red-500' : 'border-slate-200'} rounded-2xl shadow-sm py-3 px-4 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                                            >
+                                                {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                                                    <option key={sem} value={sem}>Sem {sem}</option>
+                                                ))}
+                                            </select>
+                                            {errors.semester && <p className="mt-2 text-xs font-bold text-red-500">{errors.semester.message}</p>}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Derived field</p>
+                                        <p className="mt-1 text-sm font-bold text-slate-700">Year will be saved as: <span className="text-slate-900">Year {computedYear}</span></p>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button
+                                            type="submit"
+                                            disabled={updateMutation.isPending}
+                                            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                                            Save Changes
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsEditing(false);
+                                                reset({
+                                                    name: currentUser?.name || '',
+                                                    branchId: currentBranchId || '',
+                                                    semester: currentUser?.semester || 1,
+                                                });
+                                            }}
+                                            className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-colors border border-slate-200"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
                         <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-slate-100 h-full">
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-2xl font-black text-gray-900 flex items-center gap-4">
@@ -102,7 +310,9 @@ const StudentProfileView = () => {
 
                             <div className="mt-12 p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
                                 <p className="text-sm font-medium text-slate-400 leading-relaxed text-center italic">
-                                    "Your accuracy in Computer Networking has improved by 12% this week."
+                                    {stats?.averageScore > 70
+                                        ? `"Your consistent performance is showing! Keep up the great work in your assessments."`
+                                        : `"Focusing on your weak topics could boost your overall accuracy by up to 15%."`}
                                 </p>
                             </div>
                         </div>
