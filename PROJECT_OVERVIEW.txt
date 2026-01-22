@@ -1,0 +1,96 @@
+PROJECT OVERVIEW
+================
+
+This project is a backend service built using Node.js, Express, and MongoDB.
+It is designed with a clean, scalable architecture that separates concerns
+between controllers, models, utilities, and configuration layers.
+
+The primary goal of this project is to provide a secure and extensible
+user management and authentication system that can be expanded into a
+larger application (e.g., learning platform, admin dashboard, or SaaS backend).
+
+--------------------------------------------------
+CORE FEATURES
+--------------------------------------------------
+
+1. User Management
+- User creation with email uniqueness enforcement
+- Role-based users (STUDENT, ADMIN)
+- Secure password storage using hashing (bcrypt)
+- No plaintext password storage at any point
+
+2. Authentication & Authorization
+- Login using email and password
+- Password comparison handled at model level
+- JWT-based authentication
+- Authenticated routes use middleware to attach the user to the request
+- Verification endpoint to validate active sessions
+
+3. Error Handling
+- Centralized async error handling using a custom asyncHandler
+- Custom AppError class to handle business logic errors with HTTP status codes
+- MongoDB and Mongoose errors (validation, duplicate keys, cast errors)
+  are normalized into consistent API responses
+- Stack traces exposed only in development mode
+
+4. API Response Standardization
+- All responses follow a consistent structure:
+  - success
+  - message
+  - data
+- HTTP status codes are used correctly for all scenarios
+
+5. Configuration Management
+- Environment-based configuration (DEV / PROD)
+- Centralized config layer for database, server, and security settings
+- Fail-fast approach for missing critical environment variables
+
+--------------------------------------------------
+ARCHITECTURE OVERVIEW
+--------------------------------------------------
+
+- Controllers:
+  Handle request-level logic and business rules only.
+  No database-specific or encryption logic lives here.
+
+- Models:
+  Define MongoDB schemas and encapsulate database access logic.
+  Password hashing and comparison are handled at the schema level.
+
+- Middleware & Utilities:
+  Handle cross-cutting concerns such as authentication, error handling,
+  and standardized responses.
+
+- Server Bootstrap:
+  Application lifecycle (Express app) is separated from server lifecycle
+  (HTTP server and port binding) to support clean restarts and scalability.
+
+--------------------------------------------------
+SECURITY CONSIDERATIONS
+--------------------------------------------------
+
+- Passwords are hashed using bcrypt before storage
+- Password fields are excluded from query results by default
+- Authentication tokens are signed using environment-based secrets
+- Sensitive error details are hidden in production
+- Same error messages are used for login failures to prevent user enumeration
+
+--------------------------------------------------
+INTENDED EXTENSIONS
+--------------------------------------------------
+
+This project is intentionally structured to allow easy addition of:
+- Refresh tokens
+- Role-based access control (RBAC)
+- Password reset & email verification
+- Rate limiting and request validation
+- Audit logs and admin-level features
+
+--------------------------------------------------
+SUMMARY
+--------------------------------------------------
+
+This backend is built with production-readiness in mind.
+It follows industry best practices for security, error handling,
+and code organization, making it suitable as a foundation for
+real-world applications.
