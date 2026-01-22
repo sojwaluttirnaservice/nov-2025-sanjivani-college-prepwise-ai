@@ -1,5 +1,4 @@
-const User = require("../schemas/user");
-
+const User = require("../schemas/User");
 const usersModel = {
   createUser: (userData) => {
     return User.create(userData);

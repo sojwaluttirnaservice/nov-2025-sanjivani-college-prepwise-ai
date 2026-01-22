@@ -8,9 +8,10 @@ const config = require("../../config/config");
 
 const usersController = {
   createUser: asyncHandler(async (req, res) => {
-    const { email, password, role } = req.body;
+    let userData = req.body;
+    const { email } = userData;
 
-    const existingUser = await usersModel.getUserByEmail(req.body.email);
+    const existingUser = await usersModel.getUserByEmail(email);
 
     if (existingUser) {
       throw new AppError(
@@ -19,7 +20,7 @@ const usersController = {
       );
     }
 
-    const user = await usersModel.createUser(req.body);
+    const user = await usersModel.createUser(userData);
     return sendSuccess(res, STATUS.CREATED, "User created successfully", {
       user,
     });
