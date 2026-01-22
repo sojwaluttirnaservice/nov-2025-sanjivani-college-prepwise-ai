@@ -39,4 +39,14 @@ export const authService = {
     const response = await instance.get("/users/verify");
     return response.data;
   },
+
+  me: async () => {
+    const response = await instance.get("/users/me");
+    return response.data;
+  },
+
+  updateMe: async (updates) => {
+    const response = await instance.patch("/users/me", updates);
+    return response.data;
+  },
 };

@@ -92,12 +92,85 @@ const usersController = {
     }
 
     // Optional: re-fetch for fresh data
-    const user = await usersModel.getUserById(req.user._id);
+    const userId = req.user.userId || req.user._id;
+    const user = await usersModel.getUserById(userId);
     if (!user) {
       throw new AppError("User not found", STATUS.NOT_FOUND);
     }
 
     return sendSuccess(res, STATUS.OK, "User profile retrieved", user);
+  }),
+
+  updateProfile: asyncHandler(async (req, res) => {
+    if (!req.user) {
+      throw new AppError("Unauthorized", STATUS.UNAUTHORIZED);
+    }
+
+    const userId = req.user.userId || req.user._id;
+
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, "email") ||
+      Object.prototype.hasOwnProperty.call(req.body, "password") ||
+      Object.prototype.hasOwnProperty.call(req.body, "role")
+    ) {
+      throw new AppError(
+        "Cannot update email, password, or role via this endpoint",
+        STATUS.BAD_REQUEST,
+      );
+    }
+
+    const existingUser = await usersModel.getUserById(userId);
+    if (!existingUser) {
+      throw new AppError("User not found", STATUS.NOT_FOUND);
+    }
+
+    const updates = {};
+
+    if (typeof req.body?.name === "string") {
+      updates.name = req.body.name.trim();
+    }
+
+    if (req.body?.branchId) {
+      updates.branchId = req.body.branchId;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "semester")) {
+      const semester = Number(req.body.semester);
+      if (Number.isNaN(semester)) {
+        throw new AppError("Semester must be a number", STATUS.BAD_REQUEST);
+      }
+      updates.semester = semester;
+      updates.year = Math.ceil(semester / 2);
+    }
+
+    if (
+      !updates.name &&
+      !updates.branchId &&
+      !Object.prototype.hasOwnProperty.call(updates, "semester")
+    ) {
+      throw new AppError("No valid fields provided to update", STATUS.BAD_REQUEST);
+    }
+
+    const nextBranchId = updates.branchId ?? existingUser.branchId;
+    const nextSemester =
+      updates.semester ?? existingUser.semester;
+    const nextYear = updates.year ?? existingUser.year;
+
+    if (existingUser.role === "STUDENT") {
+      if (!nextBranchId || !nextSemester || !nextYear) {
+        throw new AppError(
+          "Student must have branchId, year, and semester",
+          STATUS.BAD_REQUEST,
+        );
+      }
+    }
+
+    const user = await usersModel.updateUserById(userId, updates);
+    if (!user) {
+      throw new AppError("User not found", STATUS.NOT_FOUND);
+    }
+
+    return sendSuccess(res, STATUS.OK, "User profile updated", user);
   }),
 };
 
