@@ -1,0 +1,7 @@
+node_modules
+.DS_Store
+client/dist/
+# api folder
+api/public/dev-uploads
+api/public/uploads/
+.env

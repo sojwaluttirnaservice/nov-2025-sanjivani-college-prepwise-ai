@@ -1,0 +1,15 @@
+{
+  "watch": [
+    "app.js",
+    "routes",
+    "controllers",
+    "models",
+    "schemas",
+    "config",
+    "utils"
+  ],
+  "ignore": ["node_modules", "public", "logs"],
+  "exec": "node ./bin/www",
+  "delay": "300ms",
+  "signal": "SIGTERM"
+}
