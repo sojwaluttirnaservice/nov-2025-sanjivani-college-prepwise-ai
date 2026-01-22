@@ -13,4 +13,6 @@ usersRouter.get("/verify", isAuthenticated, usersController.verifyUser);
 
 usersRouter.get("/me", isAuthenticated, usersController.getProfile);
 
+usersRouter.patch("/me", isAuthenticated, usersController.updateProfile);
+
 module.exports = usersRouter;

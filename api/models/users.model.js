@@ -17,6 +17,13 @@ const usersModel = {
     return User.findById(userId);
   },
 
+  updateUserById: (userId, updates) => {
+    return User.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+    });
+  },
+
   getUsersByRole: (role) => {
     return User.find({ role });
   },
