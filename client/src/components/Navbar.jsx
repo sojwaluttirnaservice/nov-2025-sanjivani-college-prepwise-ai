@@ -3,7 +3,6 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import Container from './utils/Container'
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../redux/slices/authSlice'
-import message from '../utils/message'
 import { LogOut, User } from 'lucide-react'
 
 import toast from 'react-hot-toast'
@@ -45,17 +44,26 @@ const Navbar = () => {
 
                         {/* Navigation Links */}
                         <div className="hidden md:flex items-center space-x-8 font-medium text-gray-600">
-                            <NavLink to={'/'} className={({ isActive }) => `relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold' : ''}`}>
+                            <NavLink
+                                to={'/'}
+                                className={({ isActive }) => `group relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold active-link' : ''}`}
+                            >
                                 Home
-                                {({ isActive }) => isActive && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500"></span>}
+                                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500 opacity-0 group-[.active-link]:opacity-100 transition-opacity"></span>
                             </NavLink>
-                            <NavLink to={'/about'} className={({ isActive }) => `relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold' : ''}`}>
+                            <NavLink
+                                to={'/about'}
+                                className={({ isActive }) => `group relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold active-link' : ''}`}
+                            >
                                 About
-                                {({ isActive }) => isActive && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500"></span>}
+                                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500 opacity-0 group-[.active-link]:opacity-100 transition-opacity"></span>
                             </NavLink>
-                            <NavLink to={'/contact'} className={({ isActive }) => `relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold' : ''}`}>
+                            <NavLink
+                                to={'/contact'}
+                                className={({ isActive }) => `group relative py-1 transition-all duration-300 hover:text-indigo-600 ${isActive ? 'text-indigo-600 font-bold active-link' : ''}`}
+                            >
                                 Contact
-                                {({ isActive }) => isActive && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500"></span>}
+                                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500 opacity-0 group-[.active-link]:opacity-100 transition-opacity"></span>
                             </NavLink>
                         </div>
 

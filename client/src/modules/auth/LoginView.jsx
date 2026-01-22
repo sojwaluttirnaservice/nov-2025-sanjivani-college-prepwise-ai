@@ -5,19 +5,14 @@ import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { setCredentials } from '../../redux/slices/authSlice';
 import { authService } from '../../services/authService';
 import clientConfig from '../../config/clientConfig';
+import message from '../../utils/message';
 
 const loginSchema = yup.object().shape({
     email: yup.string()
-        .required('Email or username is required')
-        .test('is-valid-email', 'Please enter a valid college email', (value) => {
-            // In dev mode, we allow simple strings like 'admin' or 'student'
-            if (import.meta.env.MODE === 'development') return true;
-            return /^[A-Z0-9._%+-]+@sanjivani\.edu\.in$/i.test(value) || /^[A-Z0-9._%+-]+@gmail\.com$/i.test(value);
-        }),
+        .required('Email or username is required'),
     password: yup.string().required('Password is required').min(5, 'Password too short'),
 });
 
@@ -33,7 +28,7 @@ const LoginView = () => {
         mutationFn: authService.login,
         onSuccess: (data) => {
             dispatch(setCredentials(data));
-            toast.success(`Welcome back, ${data.user.name}!`);
+            message.success(`Welcome back, ${data.user.name}!`);
             if (data.user.role === 'ADMIN') {
                 navigate('/admin');
             } else {
@@ -41,7 +36,7 @@ const LoginView = () => {
             }
         },
         onError: (error) => {
-            toast.error(error.message || 'Login failed');
+            message.error(error.message || 'Login failed');
         }
     });
 
@@ -104,7 +99,7 @@ const LoginView = () => {
                 </p>
             </div>
 
-            {import.meta.env.MODE === 'development' && (
+            {clientConfig.PROJECT_ENV == "DEV" && (
                 <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg mt-6">
                     <p className="text-xs text-amber-800 font-medium mb-1">Dev Mode Bypass Active:</p>
                     <p className="text-[10px] text-amber-700">Type 'admin' or 'student' in email to auto-login.</p>

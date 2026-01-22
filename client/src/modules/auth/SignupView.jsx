@@ -1,24 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import message from '../../utils/message';
 import { authService } from '../../services/authService';
+import { fetchBranches } from '../../redux/slices/resourceSlice';
 import clientConfig from '../../config/clientConfig';
 
 const signupSchema = yup.object().shape({
     firstName: yup.string().required('First name is required'),
     lastName: yup.string().required('Last name is required'),
     branch: yup.string().required('Branch selection is required'),
-    semester: yup.number().required('Semester is required'),
+    semester: yup.number().required('Semester is required').min(1).max(8),
     email: yup.string()
-        .required('Email is required')
-        .test('is-valid-email', 'Please enter a valid college email (@sanjivani.edu.in)', (value) => {
-            if (import.meta.env.MODE === 'development') return true;
-            return /^[A-Z0-9._%+-]+@sanjivani\.edu\.in$/i.test(value);
-        }),
+        .required('Email is required'),
     password: yup.string()
         .required('Password is required')
         .min(6, 'Password must be at least 6 characters'),
@@ -26,28 +24,43 @@ const signupSchema = yup.object().shape({
 
 const SignupView = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { branches, status: branchStatus } = useSelector((state) => state.resource);
 
     const { register, handleSubmit, formState: { errors } } = useForm({
         resolver: yupResolver(signupSchema),
         defaultValues: {
-            branch: 'Computer Engineering',
             semester: 1
         }
     });
 
+    useEffect(() => {
+        dispatch(fetchBranches());
+    }, [dispatch]);
+
     const signupMutation = useMutation({
         mutationFn: authService.register,
         onSuccess: () => {
-            toast.success('Registration successful! Please sign in.');
+            message.success('Registration successful! Please sign in.');
             navigate('/auth/login');
         },
         onError: (error) => {
-            toast.error(error.message || 'Registration failed');
+            message.error(error.message || 'Registration failed');
         }
     });
 
     const onSubmit = (data) => {
-        signupMutation.mutate(data);
+        // Construct payload matching User schema
+        const payload = {
+            name: `${data.firstName} ${data.lastName}`.trim(),
+            email: data.email,
+            password: data.password,
+            branchId: data.branch,
+            semester: Number(data.semester),
+            year: Math.ceil(Number(data.semester) / 2)
+        };
+
+        signupMutation.mutate(payload);
     };
 
     return (
@@ -88,13 +101,16 @@ const SignupView = () => {
                     <select
                         {...register('branch')}
                         id="branch"
-                        className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        disabled={branchStatus === 'loading'}
+                        className={`mt-1 block w-full border ${errors.branch ? 'border-red-500' : 'border-slate-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100`}
                     >
-                        <option value="Computer Engineering">Computer Engineering</option>
-                        <option value="IT">IT</option>
-                        <option value="Mechanical Engineering">Mechanical Engineering</option>
-                        <option value="Civil Engineering">Civil Engineering</option>
+                        <option value="">Select a branch</option>
+                        {branches.map(branch => (
+                            <option key={branch._id} value={branch._id}>{branch.name}</option>
+                        ))}
                     </select>
+                    {errors.branch && <p className="mt-1 text-xs text-red-500">{errors.branch.message}</p>}
+                    {branchStatus === 'failed' && <p className="mt-1 text-xs text-red-500">Failed to load branches.</p>}
                 </div>
 
                 <div>
@@ -153,3 +169,4 @@ const SignupView = () => {
 };
 
 export default SignupView;
+
