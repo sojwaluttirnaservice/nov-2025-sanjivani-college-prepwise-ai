@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const { QUIZ_TYPES } = require("./Quiz");
 const QUESTION_DIFFICULTY = {
   EASY: "EASY",
   MEDIUM: "MEDIUM",
@@ -79,6 +79,12 @@ const questionSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    generatedFor: {
+      type: String,
+      enum: Object.values(QUIZ_TYPES),
+      required: true,
     },
   },
   { timestamps: true },

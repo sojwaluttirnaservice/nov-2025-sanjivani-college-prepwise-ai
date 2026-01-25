@@ -5,6 +5,12 @@ const QUIZ_TYPES = {
   ADAPTIVE: "ADAPTIVE",
 };
 
+const ATTEMPT_STATUS = {
+  IN_PROGRESS: "IN_PROGRESS",
+  SUBMITTED: "SUBMITTED",
+  COMPLETED: "COMPLETED",
+};
+
 const quizAttemptSchema = new mongoose.Schema(
   {
     /**
@@ -36,6 +42,12 @@ const quizAttemptSchema = new mongoose.Schema(
       required: true,
     },
 
+    status: {
+      type: String,
+      enum: Object.values(ATTEMPT_STATUS),
+      default: ATTEMPT_STATUS.IN_PROGRESS,
+    },
+
     /**
      * 📝 Answers given by student
      */
@@ -62,7 +74,7 @@ const quizAttemptSchema = new mongoose.Schema(
      */
     score: {
       type: Number,
-      required: true,
+      default: 0,
       min: 0,
     },
 
@@ -87,7 +99,6 @@ const quizAttemptSchema = new mongoose.Schema(
 
     completedAt: {
       type: Date,
-      required: true,
     },
   },
   { timestamps: true },
@@ -106,4 +117,5 @@ const QuizAttempt =
 module.exports = {
   QuizAttempt,
   QUIZ_TYPES,
+  ATTEMPT_STATUS,
 };
