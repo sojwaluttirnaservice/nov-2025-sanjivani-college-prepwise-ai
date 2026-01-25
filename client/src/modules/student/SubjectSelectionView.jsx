@@ -2,15 +2,17 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Book, ChevronRight, Loader2 } from 'lucide-react';
-import { studentService } from '../../services/studentService';
+import { resourceService } from '../../services/resourceService';
 import Container from '../../components/utils/Container';
 
 const SubjectSelectionView = () => {
     const navigate = useNavigate();
-    const { data: subjects, isLoading } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['subjects'],
-        queryFn: studentService.getSubjects
+        queryFn: () => resourceService.getSubjects()
     });
+
+    const subjects = data?.subjects || [];
 
     if (isLoading) {
         return (
@@ -49,10 +51,10 @@ const SubjectSelectionView = () => {
 
                 {/* Catalog Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {subjects?.map((sub) => (
+                    {subjects.map((sub) => (
                         <div
-                            key={sub.id}
-                            onClick={() => navigate(`/syllabus/subjects/${sub.id}`)}
+                            key={sub._id}
+                            onClick={() => navigate(`/syllabus/subjects/${sub._id}`)}
                             className="group bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-500 cursor-pointer flex flex-col sm:flex-row overflow-hidden"
                         >
                             {/* Visual Side */}

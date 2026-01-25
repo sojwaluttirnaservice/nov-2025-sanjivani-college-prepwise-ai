@@ -67,37 +67,4 @@ export const studentService = {
       setTimeout(() => resolve(MOCK_UNITS[subjectId] || []), 500);
     });
   },
-
-  startAssessment: async (payload) => {
-    console.log("Starting Assessment with:", payload);
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(MOCK_QUESTIONS), 1000);
-    });
-  },
-
-  submitAssessment: async (payload) => {
-    console.log("Submitting Assessment:", payload);
-    return new Promise((resolve) => {
-      setTimeout(
-        () =>
-          resolve({
-            score: 8,
-            accuracy: 80,
-            weakTopics: [
-              {
-                topicCode: "SDLC-01",
-                topicTitle: "Software Development Life Cycle",
-                subtopics: ["Waterfall Model Limitations"],
-              },
-              {
-                topicCode: "AG-01",
-                topicTitle: "Agile Principles",
-                subtopics: ["Scrum Framework"],
-              },
-            ],
-          }),
-        1000
-      );
-    });
-  },
 };

@@ -33,7 +33,7 @@ const resourceSlice = createSlice({
       })
       .addCase(fetchBranches.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.branches = action.payload;
+        state.branches = action.payload.branches;
       })
       .addCase(fetchBranches.rejected, (state, action) => {
         state.status = "failed";

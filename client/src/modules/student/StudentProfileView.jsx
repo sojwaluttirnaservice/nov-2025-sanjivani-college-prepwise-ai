@@ -88,12 +88,14 @@ const StudentProfileView = () => {
     const updateMutation = useMutation({
         mutationFn: authService.updateMe,
         onSuccess: (updatedUser) => {
+            console.log('[DEBUG] Profile update success. Received:', updatedUser);
             queryClient.setQueryData(['users-me'], updatedUser);
             dispatch(updateCurrentUser(updatedUser));
             message.success('Profile updated successfully');
             setIsEditing(false);
         },
         onError: (error) => {
+            console.error('[DEBUG] Profile update error:', error);
             message.error(error.message || 'Failed to update profile');
         }
     });
@@ -212,7 +214,7 @@ const StudentProfileView = () => {
                                                 className={`mt-2 block w-full border ${errors.branchId ? 'border-red-500' : 'border-slate-200'} rounded-2xl shadow-sm py-3 px-4 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-slate-50`}
                                             >
                                                 <option value="">Select a branch</option>
-                                                {branches.map((branch) => (
+                                                {branches?.map((branch) => (
                                                     <option key={branch._id} value={branch._id}>{branch.name}</option>
                                                 ))}
                                             </select>

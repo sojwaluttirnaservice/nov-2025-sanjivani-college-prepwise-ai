@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ListChecks, Play, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
-import { studentService } from '../../services/studentService';
+import { resourceService } from '../../services/resourceService';
+import { assessmentService } from '../../services/assessmentService';
 import Container from '../../components/utils/Container';
 import toast from 'react-hot-toast';
 
@@ -11,16 +12,19 @@ const UnitSelectionView = () => {
     const navigate = useNavigate();
     const [generatingUnit, setGeneratingUnit] = useState(null);
 
-    const { data: units, isLoading } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['units', subjectId],
-        queryFn: () => studentService.getUnits(subjectId)
+        queryFn: () => resourceService.getUnits(subjectId),
+        enabled: !!subjectId
     });
+
+    const units = data?.units || [];
 
     const handleStartTest = async (unit) => {
         setGeneratingUnit(unit.id);
         try {
             // Mandated Flow: Wait for API to return questions before navigating
-            const questions = await studentService.startAssessment({ subjectId, unitId: unit.id });
+            const assessmentData = await assessmentService.startAssessment(unit.id);
 
             // Success: Clean up and navigate
             setGeneratingUnit(null);
@@ -29,11 +33,13 @@ const UnitSelectionView = () => {
                     subjectId,
                     unitId: unit.id,
                     unitTitle: unit.title,
-                    questions
+                    questions: assessmentData.questions, // Pre-load questions
+                    attemptId: assessmentData.attemptId
                 }
             });
         } catch (error) {
             setGeneratingUnit(null);
+            console.error(error);
             toast.error('Failed to generate assessment. Please try again.');
         }
     };
@@ -63,10 +69,10 @@ const UnitSelectionView = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 max-w-4xl">
-                    {units?.map((unit) => (
+                    {units.map((unit) => (
                         <div
                             key={unit.id}
-                            className={`bg-white p-8 rounded-[2rem] shadow-sm border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-6 group ${generatingUnit === unit.id ? 'border-indigo-300 ring-4 ring-indigo-50' : 'border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50'
+                            className={`bg-white p-8 rounded-4xl shadow-sm border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-6 group ${generatingUnit === unit.id ? 'border-indigo-300 ring-4 ring-indigo-50' : 'border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50'
                                 }`}
                         >
                             <div className="flex items-center gap-6 w-full sm:w-auto">
@@ -78,7 +84,7 @@ const UnitSelectionView = () => {
                                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">{unit.title}</h3>
                                     <div className="flex items-center gap-2">
                                         <Sparkles className="w-3 h-3 text-amber-500" />
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{unit.topics} Performance Topics</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{unit.topics?.length || 0} Performance Topics</p>
                                     </div>
                                 </div>
                             </div>
@@ -87,8 +93,8 @@ const UnitSelectionView = () => {
                                 onClick={() => handleStartTest(unit)}
                                 disabled={generatingUnit !== null}
                                 className={`w-full sm:w-auto px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3 ${generatingUnit === unit.id
-                                        ? 'bg-indigo-600 text-white animate-pulse cursor-wait'
-                                        : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100 disabled:opacity-50'
+                                    ? 'bg-indigo-600 text-white animate-pulse cursor-wait'
+                                    : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100 disabled:opacity-50'
                                     }`}
                             >
                                 {generatingUnit === unit.id ? (
