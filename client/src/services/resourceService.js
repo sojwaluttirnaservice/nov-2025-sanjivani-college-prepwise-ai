@@ -12,11 +12,28 @@ const resourceService = {
 
   /**
    * Fetch all subjects
-   * @param {string} [branchId] Optional branch filter
+   * @param {Object} [filters] Optional filters { branchId, semester }
    * @returns {Promise<Array>} List of subjects
    */
-  getSubjects: async (branchId) => {
-    const params = branchId ? { branchId } : {};
+  getSubjects: async (filters = {}) => {
+    const params = {};
+
+    // Only add non-empty filter values
+    if (filters.branchId && filters.branchId !== "") {
+      params.branchId = filters.branchId;
+    }
+
+    if (filters.semester && filters.semester !== "") {
+      params.semester = filters.semester;
+    }
+
+    console.log(
+      "[DEBUG] getSubjects called with filters:",
+      filters,
+      "params:",
+      params,
+    );
+
     const response = await instance.get("/resources/subjects", { params });
     return response.data;
   },

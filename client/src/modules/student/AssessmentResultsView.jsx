@@ -11,13 +11,16 @@ const AssessmentResultsView = () => {
     if (!results) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6">
-                <div className="relative">
-                    <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                    <Target className="w-8 h-8 text-indigo-600 absolute inset-0 m-auto animate-pulse" />
-                </div>
+                <AlertTriangle className="w-12 h-12 text-amber-500" />
                 <div className="text-center">
-                    <h2 className="text-2xl font-black text-gray-900">Evaluating your responses...</h2>
-                    <p className="text-slate-500">AI is mapping your performance to the syllabus topics.</p>
+                    <h2 className="text-2xl font-black text-gray-900">No Results Found</h2>
+                    <p className="text-slate-500">It seems you haven't completed an assessment recently.</p>
+                    <button
+                        onClick={() => navigate('/syllabus/subjects')}
+                        className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold"
+                    >
+                        Go to Curriculum
+                    </button>
                 </div>
             </div>
         );

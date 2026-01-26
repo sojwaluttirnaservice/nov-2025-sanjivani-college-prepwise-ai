@@ -9,6 +9,7 @@ import message from '../../utils/message';
 import { authService } from '../../services/authService';
 import { fetchBranches } from '../../redux/slices/resourceSlice';
 import clientConfig from '../../config/clientConfig';
+import { extractErrorMessage } from '../../utils/errorHandler';
 
 const signupSchema = yup.object().shape({
     firstName: yup.string().required('First name is required'),
@@ -40,12 +41,12 @@ const SignupView = () => {
 
     const signupMutation = useMutation({
         mutationFn: authService.register,
-        onSuccess: () => {
-            message.success('Registration successful! Please sign in.');
+        onSuccess: (data) => {
+            message.success(data.message || 'Registration successful! Please sign in.');
             navigate('/auth/login');
         },
         onError: (error) => {
-            message.error(error.message || 'Registration failed');
+            message.error(extractErrorMessage(error, 'Registration failed'));
         }
     });
 

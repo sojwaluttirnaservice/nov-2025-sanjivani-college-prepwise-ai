@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Loader2, Send, AlertCircle } from 'lucide-react';
 import { assessmentService } from '../../services/assessmentService';
 import Container from '../../components/utils/Container';
 import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
+import { extractErrorMessage } from '../../utils/errorHandler';
 
 const AssessmentAttemptView = () => {
     const location = useLocation();
@@ -36,17 +37,17 @@ const AssessmentAttemptView = () => {
     const submitMutation = useMutation({
         mutationFn: (payload) => assessmentService.submitAssessment(attemptId, payload.answers),
         onSuccess: (data) => {
-            toast.success('Assessment submitted successfully!');
+            toast.success(data.message || 'Assessment submitted successfully!');
             navigate('/assessment/results', {
                 state: {
-                    results: data,
+                    results: data.data || data, // Handle wrapped/unwrapped
                     unitId,
                     unitTitle: stateTitle || 'Unit Assessment'
                 }
             });
         },
         onError: (err) => {
-            toast.error(err.message || 'Failed to submit assessment.');
+            toast.error(extractErrorMessage(err, 'Failed to submit assessment.'));
         }
     });
 
