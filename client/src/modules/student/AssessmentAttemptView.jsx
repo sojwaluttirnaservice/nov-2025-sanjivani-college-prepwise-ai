@@ -33,6 +33,62 @@ const AssessmentAttemptView = () => {
         }
     }, [assessmentData]);
 
+    /**
+     * 🎯 TIMER PERSISTENCE FEATURE
+     * 
+     * WHY THIS EXISTS:
+     * - Users might navigate away, close tab, or refresh during assessment
+     * - Losing timer progress creates poor UX and unfair time tracking
+     * - Backend expects accurate timeSpent for analytics
+     * 
+     * STRATEGY:
+     * 1. Save timeSpent on component unmount (navigate away)
+     * 2. Save every 30 seconds as backup (periodic auto-save)
+     * 3. Save on page close/refresh (beforeunload event)
+     * 
+     * BENEFIT:
+     * - Seamless resume experience
+     * - Accurate time tracking
+     * - No data loss
+     */
+    useEffect(() => {
+        if (!attemptId) return;
+
+        // Auto-save function
+        const saveTimeSpent = async () => {
+            const currentTime = window.currentTime || 0;
+            if (currentTime > 0) {
+                try {
+                    await assessmentService.updateTimeSpent(attemptId, currentTime);
+                    console.log(`✅ [Timer] Saved: ${currentTime}s`);
+                } catch (err) {
+                    console.error('❌ [Timer] Save failed:', err);
+                }
+            }
+        };
+
+        // STRATEGY #1: Periodic auto-save every 30 seconds
+        const autoSaveInterval = setInterval(() => {
+            saveTimeSpent();
+        }, 30000); // 30s
+
+        // STRATEGY #2: Save on page close/refresh
+        const handleBeforeUnload = (e) => {
+            saveTimeSpent();
+            // Modern browsers ignore custom messages, but we still need to call preventDefault
+            e.preventDefault();
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // STRATEGY #3: Cleanup - save on component unmount (navigate away)
+        return () => {
+            clearInterval(autoSaveInterval);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            saveTimeSpent(); // Final save before unmount
+        };
+    }, [attemptId]);
+
     // Submit Mutation
     const submitMutation = useMutation({
         mutationFn: (payload) => assessmentService.submitAssessment(attemptId, payload.answers),
@@ -112,7 +168,7 @@ const AssessmentAttemptView = () => {
             selectedOption
         }));
 
-        submitMutation.mutate({ answers });
+        submitMutation.mutate({ answers, timeSpent: window.currentTime || 0 });
     };
 
     return (
@@ -133,6 +189,13 @@ const AssessmentAttemptView = () => {
                         </div>
 
                         <div className="flex items-center gap-6">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Time</p>
+                                <Timer
+                                    initialTime={assessmentData?.timeSpent || 0}
+                                    onTimeUpdate={(t) => window.currentTime = t}
+                                />
+                            </div>
                             <div className="text-right hidden sm:block">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progress</p>
                                 <p className="font-bold text-indigo-600">{Object.keys(responses).length} / {questions?.length || 0}</p>
@@ -212,6 +275,35 @@ const AssessmentAttemptView = () => {
                 </div>
             </Container>
         </div>
+    );
+};
+
+const Timer = ({ initialTime, onTimeUpdate }) => {
+    const [seconds, setSeconds] = useState(initialTime);
+
+    useEffect(() => {
+        setSeconds(initialTime);
+    }, [initialTime]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setSeconds(s => {
+                const newTime = s + 1;
+                onTimeUpdate(newTime);
+                return newTime;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [onTimeUpdate]);
+
+    const formatTime = (totalSeconds) => {
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return (
+        <p className="font-bold text-gray-900 font-mono text-lg">{formatTime(seconds)}</p>
     );
 };
 

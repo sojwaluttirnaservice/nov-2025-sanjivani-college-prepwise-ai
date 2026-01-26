@@ -23,6 +23,7 @@ import SubjectSelectionPage from './pages/student/SubjectSelectionPage'
 import UnitSelectionPage from './pages/student/UnitSelectionPage'
 import AssessmentAttemptPage from './pages/student/AssessmentAttemptPage'
 import AssessmentResultsPage from './pages/student/AssessmentResultsPage'
+import AssessmentResultDetailPage from './pages/student/AssessmentResultDetailPage'
 import StudentProfilePage from './pages/student/StudentProfilePage'
 import PageNotFound from './pages/outer/PageNotFound'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -60,6 +61,7 @@ const App = () => {
                         {/* Assessment Section */}
                         <Route path="/assessment/attempt" element={<AssessmentAttemptPage />} />
                         <Route path="/assessment/results" element={<AssessmentResultsPage />} />
+                        <Route path="/assessment/results/:attemptId" element={<AssessmentResultDetailPage />} />
                     </Route>
                 </Route>
 
