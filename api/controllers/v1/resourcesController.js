@@ -24,11 +24,17 @@ const resourcesController = {
    * @route GET /api/v1/resources/subjects
    */
   getSubjects: asyncHandler(async (req, res) => {
-    // Optionally filter by branchId if provided in query
-    const { branchId } = req.query;
-    const matchStage = branchId
-      ? { branchId: new mongoose.Types.ObjectId(branchId) }
-      : {};
+    // Optionally filter by branchId and semester if provided in query
+    const { branchId, semester } = req.query;
+    const matchStage = {};
+
+    if (branchId) {
+      matchStage.branchId = new mongoose.Types.ObjectId(branchId);
+    }
+
+    if (semester) {
+      matchStage.semester = parseInt(semester);
+    }
 
     const subjects = await Subject.aggregate([
       { $match: matchStage },
@@ -70,6 +76,7 @@ const resourcesController = {
 
     const units = await Unit.find({ subjectId })
       .select("name unitNumber description topics")
+      .populate("topics", "name")
       .sort({ unitNumber: 1 });
 
     return sendSuccess(res, STATUS.OK, "Units retrieved successfully", {

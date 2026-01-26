@@ -1,19 +1,28 @@
 const express = require("express");
-const router = express.Router();
+const assessmentsRouter = express.Router();
 const assessmentsController = require("../../controllers/v1/assessmentsController");
+const { isStudent } = require("../../middlewares/auth");
 
 /**
  * @route   POST /api/v1/assessments/:unitId/start
  * @desc    Start an assessment (Diagnostic or Adaptive)
  * @access  Private (Student)
  */
-router.post("/:unitId/start", assessmentsController.startAssessment);
+assessmentsRouter.post(
+  "/:unitId/start",
+  isStudent,
+  assessmentsController.startAssessment,
+);
 
 /**
  * @route   POST /api/v1/assessments/:attemptId/submit
  * @desc    Submit assessment answers
  * @access  Private (Student)
  */
-router.post("/:attemptId/submit", assessmentsController.submitAssessment);
+assessmentsRouter.post(
+  "/:attemptId/submit",
+  isStudent,
+  assessmentsController.submitAssessment,
+);
 
-module.exports = router;
+module.exports = assessmentsRouter;

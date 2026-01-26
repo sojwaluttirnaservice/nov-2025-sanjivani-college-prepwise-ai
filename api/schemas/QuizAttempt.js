@@ -108,7 +108,8 @@ const quizAttemptSchema = new mongoose.Schema(
  * 📌 Helpful indexes
  */
 quizAttemptSchema.index({ userId: 1, quizId: 1 });
-quizAttemptSchema.index({ unitAttemptId: 1 });
+// Index is already defined in schema options for unitAttemptId
+// quizAttemptSchema.index({ unitAttemptId: 1 });
 
 const QuizAttempt =
   mongoose.models.QuizAttempt ||
