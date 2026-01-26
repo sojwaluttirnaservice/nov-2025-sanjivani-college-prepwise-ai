@@ -42,11 +42,13 @@ export const authService = {
 
   me: async () => {
     const response = await instance.get("/users/me");
+    console.log("[DEBUG] authService.me response:", response);
     return response.data;
   },
 
   updateMe: async (updates) => {
     const response = await instance.patch("/users/me", updates);
+    console.log("[DEBUG] authService.updateMe response:", response);
     return response.data;
   },
 };

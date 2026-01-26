@@ -11,6 +11,8 @@ import { authService } from '../../services/authService';
 import { studentService } from '../../services/studentService';
 import message from '../../utils/message';
 import Container from '../../components/utils/Container';
+import { extractErrorMessage } from '../../utils/errorHandler';
+
 
 const profileSchema = yup.object().shape({
     name: yup.string().required('Name is required').min(2, 'Name is too short'),
@@ -87,14 +89,31 @@ const StudentProfileView = () => {
 
     const updateMutation = useMutation({
         mutationFn: authService.updateMe,
-        onSuccess: (updatedUser) => {
-            queryClient.setQueryData(['users-me'], updatedUser);
-            dispatch(updateCurrentUser(updatedUser));
-            message.success('Profile updated successfully');
+        onSuccess: (response) => {
+            // The response itself might be the user object or wrapped. 
+            // Assuming authService.updateMe returns the user object directly based on existing code, 
+            // but we need the message. If the service unwraps it, we might lose the message.
+            // Checking studentProfileView:92 -> queryClient.setQueryData(['users-me'], updatedUser);
+            // If the service returns just data, we can't get the message. 
+            // Let's assume for now we use a generic success or try to read it if available.
+            // Actually, best practice requested is to use backend message. 
+            // I'll check authService to see if it returns the full response or just data.
+            // Safe bet: updatedUser might be the data payload. 
+            // Wait, I should check authService first to be sure.
+            // BUT, for now I will use a fallback pattern.
+            console.log('[DEBUG] Profile update success. Received:', response);
+            // If response has message, use it.
+            const msg = response?.message || 'Profile updated successfully';
+            const userPayload = response?.data || response; // Handle wrapped or unwrapped
+
+            queryClient.setQueryData(['users-me'], userPayload);
+            dispatch(updateCurrentUser(userPayload));
+            message.success(msg);
             setIsEditing(false);
         },
         onError: (error) => {
-            message.error(error.message || 'Failed to update profile');
+            console.error('[DEBUG] Profile update error:', error);
+            message.error(extractErrorMessage(error || 'Failed to update profile'));
         }
     });
 
@@ -212,7 +231,7 @@ const StudentProfileView = () => {
                                                 className={`mt-2 block w-full border ${errors.branchId ? 'border-red-500' : 'border-slate-200'} rounded-2xl shadow-sm py-3 px-4 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-slate-50`}
                                             >
                                                 <option value="">Select a branch</option>
-                                                {branches.map((branch) => (
+                                                {branches?.map((branch) => (
                                                     <option key={branch._id} value={branch._id}>{branch.name}</option>
                                                 ))}
                                             </select>

@@ -6,5 +6,6 @@ const v1Router = getRouter();
 
 v1Router.use("/users", usersRouter);
 v1Router.use("/resources", resourcesRouter);
+v1Router.use("/assessments", require("./assessments.routes"));
 
 module.exports = v1Router;

@@ -2,39 +2,54 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ListChecks, Play, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
-import { studentService } from '../../services/studentService';
+import { resourceService } from '../../services/resourceService';
+import { assessmentService } from '../../services/assessmentService';
 import Container from '../../components/utils/Container';
 import toast from 'react-hot-toast';
+import { extractErrorMessage } from '../../utils/errorHandler';
+import { Accordion, AccordionItem } from '../../components/ui/Accordion';
 
 const UnitSelectionView = () => {
     const { subjectId } = useParams();
     const navigate = useNavigate();
     const [generatingUnit, setGeneratingUnit] = useState(null);
+    const [openUnitId, setOpenUnitId] = useState(null);
 
-    const { data: units, isLoading } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['units', subjectId],
-        queryFn: () => studentService.getUnits(subjectId)
+        queryFn: () => resourceService.getUnits(subjectId),
+        enabled: !!subjectId
     });
 
+    const units = data?.units || [];
+
+
     const handleStartTest = async (unit) => {
-        setGeneratingUnit(unit.id);
+        setGeneratingUnit(unit._id);
         try {
             // Mandated Flow: Wait for API to return questions before navigating
-            const questions = await studentService.startAssessment({ subjectId, unitId: unit.id });
+            const assessmentData = await assessmentService.startAssessment(unit._id);
 
             // Success: Clean up and navigate
             setGeneratingUnit(null);
+
+            if (assessmentData.resumed) {
+                toast.success('Resuming your active assessment', { icon: '🔄' });
+            }
+
             navigate('/assessment/attempt', {
                 state: {
                     subjectId,
-                    unitId: unit.id,
+                    unitId: unit._id,
                     unitTitle: unit.title,
-                    questions
+                    questions: assessmentData.questions, // Pre-load questions
+                    attemptId: assessmentData.attemptId
                 }
             });
         } catch (error) {
             setGeneratingUnit(null);
-            toast.error('Failed to generate assessment. Please try again.');
+            console.error(error);
+            toast.error(extractErrorMessage(error, 'Failed to generate assessment. Please try again.'));
         }
     };
 
@@ -42,6 +57,29 @@ const UnitSelectionView = () => {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!data) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <p className="text-xl font-bold text-gray-900">No data received</p>
+                <button onClick={() => navigate(0)} className="text-indigo-600 hover:underline">Retry</button>
+            </div>
+        );
+    }
+
+    if (units.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <ListChecks className="w-8 h-8 text-slate-300" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">No Units Available</h3>
+                <p className="text-slate-500 max-w-xs mx-auto mt-2">
+                    Start by selecting a different subject or check back later for content updates.
+                </p>
             </div>
         );
     }
@@ -62,49 +100,64 @@ const UnitSelectionView = () => {
                     <p className="text-gray-500 font-medium">Choose a learning module to initiate your AI-generated assessment.</p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 max-w-4xl">
-                    {units?.map((unit) => (
-                        <div
-                            key={unit.id}
-                            className={`bg-white p-8 rounded-[2rem] shadow-sm border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-6 group ${generatingUnit === unit.id ? 'border-indigo-300 ring-4 ring-indigo-50' : 'border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-6 w-full sm:w-auto">
-                                <div className={`p-5 rounded-2xl transition-colors ${generatingUnit === unit.id ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600'
-                                    }`}>
-                                    <ListChecks className="w-8 h-8" />
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">{unit.title}</h3>
+                <div className="max-w-4xl mx-auto">
+                    <Accordion>
+                        {units.map((unit) => (
+                            <AccordionItem
+                                key={unit._id}
+                                isOpen={openUnitId === unit._id}
+                                onToggle={() => setOpenUnitId(openUnitId === unit._id ? null : unit._id)}
+                                icon={ListChecks}
+                                title={`Unit ${unit.unitNumber}: ${unit.name}`}
+                                subtitle={
                                     <div className="flex items-center gap-2">
                                         <Sparkles className="w-3 h-3 text-amber-500" />
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{unit.topics} Performance Topics</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            {unit.topics?.length || 0} Performance Topics
+                                        </p>
+                                    </div>
+                                }
+                                action={
+                                    <button
+                                        onClick={() => handleStartTest(unit)}
+                                        disabled={generatingUnit !== null}
+                                        className={`
+                                            px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg flex items-center gap-2
+                                            ${generatingUnit === unit._id
+                                                ? 'bg-indigo-600 text-white cursor-wait opacity-80'
+                                                : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100 hover:shadow-xl'
+                                            }
+                                        `}
+                                    >
+                                        {generatingUnit === unit._id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Play className="w-3 h-3 fill-current" />
+                                        )}
+                                        <span className="hidden sm:inline">Start</span>
+                                    </button>
+                                }
+                            >
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Unit Topics</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {unit.topics && unit.topics.length > 0 ? (
+                                            unit.topics.map((topic, idx) => (
+                                                <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 shrink-0"></div>
+                                                    <span className="text-sm font-medium text-slate-600">
+                                                        {typeof topic === 'object' ? topic.name : topic}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-slate-400 italic col-span-2">No topics detailed for this unit.</p>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-
-                            <button
-                                onClick={() => handleStartTest(unit)}
-                                disabled={generatingUnit !== null}
-                                className={`w-full sm:w-auto px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3 ${generatingUnit === unit.id
-                                        ? 'bg-indigo-600 text-white animate-pulse cursor-wait'
-                                        : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100 disabled:opacity-50'
-                                    }`}
-                            >
-                                {generatingUnit === unit.id ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        Generating Questions...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Play className="w-4 h-4 fill-current" />
-                                        Begin Training
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    ))}
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
                 </div>
 
                 {generatingUnit && (

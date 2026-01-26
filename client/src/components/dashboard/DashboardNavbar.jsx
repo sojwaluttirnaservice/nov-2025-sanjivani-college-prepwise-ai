@@ -11,7 +11,7 @@ const DashboardNavbar = () => {
     const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
 
     return (
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+        <header className="z-50 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0">
             {/* Left side (Mobile Toggle placeholder could go here) */}
             <div className="flex items-center md:hidden">
                 <div className="text-xl font-bold text-indigo-600">{firstPart}</div>

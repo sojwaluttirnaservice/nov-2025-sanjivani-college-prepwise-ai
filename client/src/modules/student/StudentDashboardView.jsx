@@ -1,15 +1,14 @@
 import React from 'react';
+import { extractErrorMessage } from '../../utils/errorHandler';
 import { BookOpen, CheckCircle, Clock, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useSelector } from 'react-redux';
-import { selectCurrentUser } from '../../redux/slices/authSlice';
 import { studentService } from '../../services/studentService';
 import Container from '../../components/utils/Container';
 
 const StudentDashboardView = () => {
-    const user = useSelector(selectCurrentUser);
+    // const user = useSelector(selectCurrentUser);
 
-    const { data: stats, isLoading } = useQuery({
+    const { data: stats, isLoading, isError, error } = useQuery({
         queryKey: ['student-stats'],
         queryFn: studentService.getStats
     });
@@ -18,6 +17,16 @@ const StudentDashboardView = () => {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <AlertTriangle className="w-12 h-12 text-red-500" />
+                <p className="text-xl font-bold text-gray-900">Failed to load dashboard data</p>
+                <p className="text-slate-500">{extractErrorMessage(error)}</p>
             </div>
         );
     }

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { resourceService } from "../../services/resourceService";
+import { extractErrorMessage } from "../../utils/errorHandler";
 
 // Async thunk to fetch branches
 export const fetchBranches = createAsyncThunk(
@@ -9,7 +10,7 @@ export const fetchBranches = createAsyncThunk(
       return await resourceService.getBranches();
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch branches",
+        extractErrorMessage(error, "Failed to fetch branches"),
       );
     }
   },
@@ -33,7 +34,7 @@ const resourceSlice = createSlice({
       })
       .addCase(fetchBranches.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.branches = action.payload;
+        state.branches = action.payload.branches;
       })
       .addCase(fetchBranches.rejected, (state, action) => {
         state.status = "failed";

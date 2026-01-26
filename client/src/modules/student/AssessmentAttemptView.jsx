@@ -1,144 +1,126 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Loader2, Send, AlertCircle } from 'lucide-react';
-import { studentService } from '../../services/studentService';
+import { assessmentService } from '../../services/assessmentService';
 import Container from '../../components/utils/Container';
 import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
+import { extractErrorMessage } from '../../utils/errorHandler';
 
 const AssessmentAttemptView = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { subjectId: stateSub, unitId: stateUnit, unitTitle: stateTitle, questions: initialQuestions } = location.state || {};
+    const { unitId: paramUnitId } = useParams(); // Get unitId from URL if available
 
-    // Recover from SessionStorage if state is missing (refresh protection)
-    const [sessionData, setSessionData] = useState(() => {
-        const saved = sessionStorage.getItem('active_assessment');
-        return saved ? JSON.parse(saved) : null;
+    // State from navigation or fallback
+    const { unitId: stateUnit, unitTitle: stateTitle } = location.state || {};
+    const unitId = paramUnitId || stateUnit;
+
+    const [attemptId, setAttemptId] = useState(null);
+    const [responses, setResponses] = useState({});
+
+    // Fetch Assessment Data (Start Assessment)
+    const { data: assessmentData, isLoading, isError, error } = useQuery({
+        queryKey: ['assessment', unitId],
+        queryFn: () => assessmentService.startAssessment(unitId),
+        enabled: !!unitId,
+        retry: false,
     });
 
-    const subjectId = stateSub || sessionData?.subjectId;
-    const unitId = stateUnit || sessionData?.unitId;
-    const unitTitle = stateTitle || sessionData?.unitTitle;
-    const questionsList = initialQuestions || sessionData?.questions;
-
-    const [responses, setResponses] = useState(() => {
-        const saved = sessionStorage.getItem('assessment_responses');
-        return saved ? JSON.parse(saved) : {};
-    });
-
-    // Save session on mount or state change
-    React.useEffect(() => {
-        if (stateSub && stateUnit) {
-            const data = { subjectId: stateSub, unitId: stateUnit, unitTitle: stateTitle, questions: initialQuestions };
-            sessionStorage.setItem('active_assessment', JSON.stringify(data));
-            setSessionData(data);
+    useEffect(() => {
+        if (assessmentData?.attemptId) {
+            setAttemptId(assessmentData.attemptId);
         }
-    }, [stateSub, stateUnit, stateTitle, initialQuestions]);
+    }, [assessmentData]);
 
-    // Save responses on change
-    React.useEffect(() => {
-        sessionStorage.setItem('assessment_responses', JSON.stringify(responses));
-    }, [responses]);
+    /**
+     * 🎯 TIMER PERSISTENCE FEATURE
+     * 
+     * WHY THIS EXISTS:
+     * - Users might navigate away, close tab, or refresh during assessment
+     * - Losing timer progress creates poor UX and unfair time tracking
+     * - Backend expects accurate timeSpent for analytics
+     * 
+     * STRATEGY:
+     * 1. Save timeSpent on component unmount (navigate away)
+     * 2. Save every 30 seconds as backup (periodic auto-save)
+     * 3. Save on page close/refresh (beforeunload event)
+     * 
+     * BENEFIT:
+     * - Seamless resume experience
+     * - Accurate time tracking
+     * - No data loss
+     */
+    useEffect(() => {
+        if (!attemptId) return;
 
-    // Mandated: We rely on the questions passed via state or recovered
-    const { data: questions, isLoading } = useQuery({
-        queryKey: ['assessment', subjectId, unitId],
-        queryFn: () => studentService.startAssessment({ subjectId, unitId }),
-        enabled: !questionsList && !!subjectId && !!unitId,
-        initialData: questionsList
-    });
+        // Auto-save function
+        const saveTimeSpent = async () => {
+            const currentTime = window.currentTime || 0;
+            if (currentTime > 0) {
+                try {
+                    await assessmentService.updateTimeSpent(attemptId, currentTime);
+                    console.log(`✅ [Timer] Saved: ${currentTime}s`);
+                } catch (err) {
+                    console.error('❌ [Timer] Save failed:', err);
+                }
+            }
+        };
+
+        // STRATEGY #1: Periodic auto-save every 30 seconds
+        const autoSaveInterval = setInterval(() => {
+            saveTimeSpent();
+        }, 30000); // 30s
+
+        // STRATEGY #2: Save on page close/refresh
+        const handleBeforeUnload = (e) => {
+            saveTimeSpent();
+            // Modern browsers ignore custom messages, but we still need to call preventDefault
+            e.preventDefault();
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // STRATEGY #3: Cleanup - save on component unmount (navigate away)
+        return () => {
+            clearInterval(autoSaveInterval);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            saveTimeSpent(); // Final save before unmount
+        };
+    }, [attemptId]);
 
     // Submit Mutation
     const submitMutation = useMutation({
-        mutationFn: (payload) => studentService.submitAssessment(payload),
+        mutationFn: (payload) => assessmentService.submitAssessment(attemptId, payload.answers),
         onSuccess: (data) => {
-            sessionStorage.removeItem('active_assessment');
-            sessionStorage.removeItem('assessment_responses');
-            toast.success('Assessment submitted successfully!');
-            navigate('/assessment/results', { state: { results: data, unitId, unitTitle } });
+            toast.success(data.message || 'Assessment submitted successfully!');
+            navigate('/assessment/results', {
+                state: {
+                    results: data.data || data, // Handle wrapped/unwrapped
+                    unitId,
+                    unitTitle: stateTitle || 'Unit Assessment'
+                }
+            });
         },
-        onError: () => {
-            toast.error('Failed to submit assessment.');
+        onError: (err) => {
+            toast.error(extractErrorMessage(err, 'Failed to submit assessment.'));
         }
     });
 
-    if (!subjectId || !unitId) {
-        const handleLoadDemo = () => {
-            navigate(location.pathname, {
-                state: {
-                    subjectId: 'demo-sub',
-                    unitId: 'demo-unit',
-                    unitTitle: 'Demo: React Architecture & Design',
-                    questions: [
-                        {
-                            id: 'q1',
-                            question: 'What is the primary benefit of using React Hooks like useState and useEffect?',
-                            options: [
-                                'They allow you to use state and other React features without writing a class',
-                                'They improve the styling performance of the application',
-                                'They replace the need for Redux and other state management libraries',
-                                'They are primarily for server-side rendering optimizations'
-                            ],
-                        },
-                        {
-                            id: 'q2',
-                            question: 'Which of the following describes "Lifting State Up" in React?',
-                            options: [
-                                'Moving state to a child component to isolate complexity',
-                                'Moving state to the closest common ancestor of components that need it',
-                                'Storing state in a global variable outside the React tree',
-                                'Automatically syncing local state with a backend database'
-                            ],
-                        },
-                        {
-                            id: 'q3',
-                            question: 'How do you prevent a function from being re-created on every render in a component?',
-                            options: [
-                                'By using the useMemo hook',
-                                'By using the useCallback hook',
-                                'By defining the function outside the component scope',
-                                'Both B and C are correct'
-                            ],
-                        }
-                    ]
-                }
-            });
-        };
-
+    if (!unitId) {
         return (
-            <div className="p-12 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-100 max-w-xl mx-auto mt-20 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-amber-400"></div>
-
-                <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                    <AlertCircle className="w-10 h-10 text-amber-500" />
-                </div>
-
-                <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Session Inactive</h2>
-                <p className="text-slate-500 mb-10 text-lg leading-relaxed">
-                    Personalized assessments must be initiated via the <span className="text-indigo-600 font-bold">Curriculum Catalog</span> to ensure your results are correctly mapped to your performance history.
-                </p>
-
-                <div className="flex flex-col gap-4">
+            <Container>
+                <div className="p-10 text-center mt-10">
+                    <h2 className="text-2xl font-bold text-gray-900">Invalid Assessment Session</h2>
+                    <p className="text-gray-500 mt-2">No Unit ID provided. Please return to the curriculum.</p>
                     <button
                         onClick={() => navigate('/syllabus/subjects')}
-                        className="w-full bg-slate-900 text-white px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200"
+                        className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold"
                     >
-                        Initialize Preparation
+                        Return to Curriculum
                     </button>
-
-                    <button
-                        onClick={handleLoadDemo}
-                        className="w-full bg-white text-indigo-600 border-2 border-indigo-50 px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:border-indigo-100 hover:bg-indigo-50/30 transition-all"
-                    >
-                        Preview Design (Demo Mode)
-                    </button>
-
-                    <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        Design Demo for PrepWise AI v2.1
-                    </p>
                 </div>
-            </div>
+            </Container>
         );
     }
 
@@ -147,48 +129,76 @@ const AssessmentAttemptView = () => {
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
                 <div className="text-center">
-                    <p className="text-xl font-black text-gray-900">Reloading Logic...</p>
-                    <p className="text-slate-500">Retrieving your synchronized session data.</p>
+                    <p className="text-xl font-black text-gray-900">Generating Assessment...</p>
+                    <p className="text-slate-500">Preparing questions for you.</p>
                 </div>
             </div>
         );
     }
 
-    const handleOptionChange = (qId, option) => {
-        setResponses(prev => ({ ...prev, [qId]: option }));
+    if (isError) {
+        return (
+            <Container>
+                <div className="p-10 text-center mt-10 bg-red-50 rounded-3xl border border-red-100">
+                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-red-900">Unable to Start Assessment</h2>
+                    <p className="text-red-700 mt-2">{error?.message || 'Something went wrong while loading the quiz.'}</p>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="mt-6 px-6 py-3 bg-white text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-50"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </Container>
+        );
+    }
+
+    const { questions, quizType } = assessmentData || {};
+
+    const handleOptionChange = (questionId, optionKey) => {
+        setResponses(prev => ({ ...prev, [questionId]: optionKey }));
     };
 
     const isComplete = questions?.length > 0 && Object.keys(responses).length === questions.length;
 
     const handleSubmit = () => {
-        const payload = {
-            unitId,
-            responses: Object.entries(responses).map(([questionId, selectedOption]) => ({
-                questionId,
-                selectedOption
-            }))
-        };
-        submitMutation.mutate(payload);
+        const answers = Object.entries(responses).map(([questionId, selectedOption]) => ({
+            questionId,
+            selectedOption
+        }));
+
+        submitMutation.mutate({ answers, timeSpent: window.currentTime || 0 });
     };
 
     return (
         <div className="py-10 bg-slate-50 min-h-screen">
             <Container>
                 <div className="max-w-4xl mx-auto">
-                    {/* Focused Assessment Header */}
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 mb-10 sticky top-4 z-30 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-xl bg-white/90">
+                    {/* Header */}
+                    <div className="p-8 rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-10 sticky top-20 z-30 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-xl bg-white/90">
                         <div className="text-center md:text-left">
                             <div className="flex items-center gap-2 mb-1 justify-center md:justify-start">
-                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-md border border-indigo-100">Testing Mode</span>
-                                <h1 className="text-2xl font-black text-gray-900 tracking-tight">{unitTitle || 'Unit Assessment'}</h1>
+                                <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md border ${quizType === 'DIAGNOSTIC' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                    }`}>
+                                    {quizType || 'Assessment'}
+                                </span>
+                                <h1 className="text-2xl font-black text-gray-900 tracking-tight">{stateTitle || 'Unit Assessment'}</h1>
                             </div>
-                            <p className="text-sm text-slate-500 font-medium">Answer all questions before submitting. This test can be submitted only once.</p>
+                            <p className="text-sm text-slate-500 font-medium">Answer all questions before submitting.</p>
                         </div>
 
                         <div className="flex items-center gap-6">
                             <div className="text-right hidden sm:block">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Time</p>
+                                <Timer
+                                    initialTime={assessmentData?.timeSpent || 0}
+                                    onTimeUpdate={(t) => window.currentTime = t}
+                                />
+                            </div>
+                            <div className="text-right hidden sm:block">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progress</p>
-                                <p className="font-bold text-indigo-600">{Object.keys(responses).length} / {questions?.length || 10}</p>
+                                <p className="font-bold text-indigo-600">{Object.keys(responses).length} / {questions?.length || 0}</p>
                             </div>
                             <button
                                 onClick={handleSubmit}
@@ -205,7 +215,7 @@ const AssessmentAttemptView = () => {
                                     </>
                                 ) : (
                                     <>
-                                        Submit Test
+                                        Submit
                                         <Send className="w-4 h-4" />
                                     </>
                                 )}
@@ -213,38 +223,39 @@ const AssessmentAttemptView = () => {
                         </div>
                     </div>
 
-                    {/* Questions Body */}
+                    {/* Questions List */}
                     <div className="space-y-8 pb-20">
                         {questions?.map((q, idx) => (
-                            <div key={q.id} className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
+                            <div key={q._id} className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 hover:border-indigo-100 transition-colors">
                                 <div className="flex gap-6 mb-8">
                                     <span className="shrink-0 w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg shadow-slate-200">
                                         {idx + 1}
                                     </span>
                                     <h3 className="text-xl font-bold text-gray-900 leading-snug pt-1">
-                                        {q.question}
+                                        {q.questionText}
                                     </h3>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4 ml-0 sm:ml-16">
                                     {q.options.map((opt) => (
                                         <button
-                                            key={opt}
-                                            onClick={() => handleOptionChange(q.id, opt)}
-                                            className={`text-left px-6 py-5 rounded-[1.5rem] border-2 transition-all duration-300 font-bold tracking-tight text-lg relative overflow-hidden group ${responses[q.id] === opt
+                                            key={opt.key}
+                                            onClick={() => handleOptionChange(q._id, opt.key)}
+                                            className={`text-left px-6 py-5 rounded-[1.5rem] border-2 transition-all duration-300 font-bold tracking-tight text-lg relative overflow-hidden group ${responses[q._id] === opt.key
                                                 ? 'border-indigo-600 bg-indigo-50 text-indigo-900 shadow-inner'
                                                 : 'border-slate-50 bg-slate-50/50 hover:border-indigo-200 hover:bg-white text-slate-600'
                                                 }`}
                                         >
-                                            {responses[q.id] === opt && (
+                                            {responses[q._id] === opt.key && (
                                                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600"></div>
                                             )}
                                             <div className="flex items-center gap-4">
-                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${responses[q.id] === opt ? 'border-indigo-600 bg-indigo-600' : 'border-slate-200'
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${responses[q._id] === opt.key ? 'border-indigo-600 bg-indigo-600' : 'border-slate-200'
                                                     }`}>
-                                                    {responses[q.id] === opt && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                                    {responses[q._id] === opt.key && <div className="w-2 h-2 rounded-full bg-white"></div>}
                                                 </div>
-                                                {opt}
+                                                <span className="mr-2 opacity-50">{opt.key}.</span>
+                                                {opt.text}
                                             </div>
                                         </button>
                                     ))}
@@ -253,17 +264,46 @@ const AssessmentAttemptView = () => {
                         ))}
                     </div>
 
-                    {!isComplete && (
-                        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+                    {!isComplete && !isLoading && (
+                        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 w-max max-w-[90vw]">
                             <div className="flex items-center gap-3 text-amber-700 bg-amber-50 px-8 py-4 rounded-[1.5rem] border border-amber-200 shadow-2xl backdrop-blur-md font-bold text-sm">
-                                <AlertCircle className="w-5 h-5" />
-                                Please finalize all {questions?.length} answers to enable submission.
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                Please answer all {questions?.length} questions to submit.
                             </div>
                         </div>
                     )}
                 </div>
             </Container>
         </div>
+    );
+};
+
+const Timer = ({ initialTime, onTimeUpdate }) => {
+    const [seconds, setSeconds] = useState(initialTime);
+
+    useEffect(() => {
+        setSeconds(initialTime);
+    }, [initialTime]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setSeconds(s => {
+                const newTime = s + 1;
+                onTimeUpdate(newTime);
+                return newTime;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [onTimeUpdate]);
+
+    const formatTime = (totalSeconds) => {
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return (
+        <p className="font-bold text-gray-900 font-mono text-lg">{formatTime(seconds)}</p>
     );
 };
 

@@ -20,7 +20,12 @@ async function seedTopics() {
     { unitId: unit._id, name: "Input / Output Functions" },
   ]);
 
-  console.log("Topics seeded:", topics);
+  // Update Unit with topic references
+  await Unit.findByIdAndUpdate(unit._id, {
+    topics: topics.map((topic) => topic._id),
+  });
+
+  console.log("Topics seeded & Unit updated:", topics.length);
 }
 
 module.exports = seedTopics;

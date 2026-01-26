@@ -7,6 +7,8 @@ const apiRouter = require("./routes/apiRouter");
 const cors = require("cors");
 const config = require("./config/config");
 const connectDB = require("./config/connectDB");
+// Register all models immediately after DB connection setup
+require("./schemas");
 
 var app = express();
 
