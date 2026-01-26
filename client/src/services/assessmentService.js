@@ -7,7 +7,13 @@ export const assessmentService = {
    * @returns {Promise<Object>} { attemptId, quizType, questions, totalQuestions }
    */
   startAssessment: async (unitId) => {
-    const response = await instance.post(`/assessments/${unitId}/start`);
+    const response = await instance.post(
+      `/assessments/${unitId}/start`,
+      {},
+      {
+        timeout: 60000, // Increase timeout to 60s for LLM generation
+      },
+    );
     return response.data;
   },
 

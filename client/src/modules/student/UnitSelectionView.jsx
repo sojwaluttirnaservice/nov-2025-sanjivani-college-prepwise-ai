@@ -32,6 +32,11 @@ const UnitSelectionView = () => {
 
             // Success: Clean up and navigate
             setGeneratingUnit(null);
+
+            if (assessmentData.resumed) {
+                toast.success('Resuming your active assessment', { icon: '🔄' });
+            }
+
             navigate('/assessment/attempt', {
                 state: {
                     subjectId,

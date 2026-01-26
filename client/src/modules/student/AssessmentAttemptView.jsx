@@ -120,7 +120,7 @@ const AssessmentAttemptView = () => {
             <Container>
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 mb-10 sticky top-4 z-30 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-xl bg-white/90">
+                    <div className="p-8 rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-10 sticky top-20 z-30 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-xl bg-white/90">
                         <div className="text-center md:text-left">
                             <div className="flex items-center gap-2 mb-1 justify-center md:justify-start">
                                 <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-md border ${quizType === 'DIAGNOSTIC' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
