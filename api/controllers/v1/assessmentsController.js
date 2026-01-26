@@ -34,16 +34,61 @@ const assessmentsController = {
       quizType = QUIZ_TYPES.ADAPTIVE;
     }
 
-    // 2. Fetch Questions (Logic previously in quizService)
-    const questions = await questionsModel.getQuestionsForQuiz({
-      unitId,
-      limit: 10,
+    // 2. Check for Active Attempt (Resume Logic)
+    const activeAttempt = await quizAttemptsModel.findActiveAttempt(
+      userId,
+      unitAttempt._id,
+    );
+
+    if (activeAttempt) {
+      // Resume existing assessment
+      const existingQuestions = activeAttempt.quizId.questionIds.map((q) => ({
+        _id: q._id,
+        questionText: q.questionText,
+        options: q.options,
+      }));
+
+      return sendSuccess(res, STATUS.OK, "Resuming active assessment", {
+        attemptId: activeAttempt._id,
+        quizType: activeAttempt.quizType,
+        questions: existingQuestions,
+        totalQuestions: existingQuestions.length,
+        resumed: true, // Frontend signal
+      });
+    }
+
+    // 3. Fetch Unit & Topic Context for LLM
+    const unit = await unitAttemptsModel.getUnitContext(unitId);
+    if (!unit) {
+      throw new AppError("Unit not found", STATUS.NOT_FOUND);
+    }
+
+    // 3. Generate Questions via LLM
+    const llmProvider = require("../../services/llm/LLMFactory").getProvider();
+    const generatedQuestions = await llmProvider.generateQuestions({
+      unit: { id: unit._id, name: unit.name },
+      topics: unit.topics.map((t) => ({ id: t._id, name: t.name, weight: 1 })), // Default weight
+      quizType: quizType,
+      totalQuestions: 10,
+      difficultyDistribution: { EASY: 4, MEDIUM: 4, HARD: 2 },
     });
+
+    // 4. Save Generated Questions to DB
+    const questions = await questionsModel.insertMany(
+      generatedQuestions.map((q) => ({
+        ...q,
+        unitId: unit._id, // Ensure unitId is set
+        createdBy: "AI",
+        source: "AI", // Explicitly set source
+        generatedFor: quizType, // Required by schema
+        isActive: true,
+      })),
+    );
 
     if (!questions || questions.length === 0) {
       throw new AppError(
-        "No questions available for this unit",
-        STATUS.NOT_FOUND,
+        "Failed to generate questions",
+        STATUS.INTERNAL_SERVER_ERROR,
       );
     }
 

@@ -21,6 +21,13 @@ const questionsModel = {
     return Question.find({ _id: { $in: ids } });
   },
 
+  /**
+   * Bulk insert questions
+   */
+  insertMany: async (questions) => {
+    return Question.insertMany(questions);
+  },
+
   Model: Question,
 };
 

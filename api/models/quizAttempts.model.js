@@ -13,6 +13,20 @@ const quizAttemptsModel = {
     return QuizAttempt.findByIdAndUpdate(id, updates, { new: true });
   },
 
+  findActiveAttempt: async (userId, unitAttemptId) => {
+    return QuizAttempt.findOne({
+      userId,
+      unitAttemptId,
+      status: "IN_PROGRESS",
+    }).populate({
+      path: "quizId",
+      populate: {
+        path: "questionIds",
+        model: "Question",
+      },
+    });
+  },
+
   evaluateAndSubmit: async (attemptId, answers) => {
     const quizAttempt = await QuizAttempt.findById(attemptId);
     if (!quizAttempt) {

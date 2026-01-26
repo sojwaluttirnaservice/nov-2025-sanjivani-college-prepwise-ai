@@ -45,17 +45,34 @@ const configs = {
       jwtSecret: process.env.JWT_SECRET_KEY,
       sessionSecret: process.env.SESSION_SECRET,
     },
+    llm: {
+      provider: process.env.LLM_PROVIDER,
+      openaiApiKey: process.env.OPENAI_API_KEY,
+      openaiModel: process.env.OPENAI_MODEL,
+      geminiApiKey: process.env.GEMINI_API_KEY,
+      geminiModel: process.env.GEMINI_MODEL,
+    },
   },
 
   PROD: {
     ...baseConfig,
     db: {
-      uri: process.env.MONGODB_URI_PROD,
+      // User requested to use same DB for both modes
+      uri: process.env.MONGODB_URI,
     },
-    allowedOrigin: process.env.ALLOWED_ORIGIN_PROD,
+    allowedOrigin:
+      process.env.ALLOWED_ORIGIN_PROD || process.env.ALLOWED_ORIGIN,
     security: {
-      jwtSecret: process.env.JWT_SECRET_KEY_PROD,
-      sessionSecret: process.env.SESSION_SECRET_PROD,
+      jwtSecret: process.env.JWT_SECRET_KEY_PROD || process.env.JWT_SECRET_KEY,
+      sessionSecret:
+        process.env.SESSION_SECRET_PROD || process.env.SESSION_SECRET,
+    },
+    llm: {
+      provider: process.env.LLM_PROVIDER,
+      openaiApiKey: process.env.OPENAI_API_KEY,
+      openaiModel: process.env.OPENAI_MODEL,
+      geminiApiKey: process.env.GEMINI_API_KEY,
+      geminiModel: process.env.GEMINI_MODEL,
     },
   },
 };

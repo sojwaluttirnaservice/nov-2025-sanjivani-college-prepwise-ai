@@ -39,6 +39,14 @@ const unitAttemptsModel = {
     return await unitAttemptsModel.updateState(unitAttemptId, updates);
   },
 
+  getUnitContext: async (unitId) => {
+    // Need to require Unit inside method to avoid circular deps if any,
+    // or typically we can require it at top if safe.
+    // Assuming Unit schema is registered.
+    const Unit = require("mongoose").model("Unit");
+    return Unit.findById(unitId).populate("topics");
+  },
+
   Model: UnitAttempt,
 };
 
