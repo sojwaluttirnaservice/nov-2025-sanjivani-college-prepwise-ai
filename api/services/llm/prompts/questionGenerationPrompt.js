@@ -61,6 +61,8 @@ Ensure strict adherence to the JSON schema provided in the system instruction.
 
 Input Context:
 ${inputContext}
+
+REMEMBER: Return ONLY the raw JSON array. No markdown, no explanations. Ensure every option object has a "key" field ("A", "B", "C", "D").
   `;
 
   return { systemPrompt, userPrompt };

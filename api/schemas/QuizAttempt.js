@@ -100,6 +100,16 @@ const quizAttemptSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
     },
+
+    timeSpent: {
+      type: Number, // Seconds
+      default: 0,
+    },
+
+    aiAnalysis: {
+      type: String, // or Object if structured
+      default: null,
+    },
   },
   { timestamps: true },
 );

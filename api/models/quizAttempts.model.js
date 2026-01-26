@@ -27,7 +27,22 @@ const quizAttemptsModel = {
     });
   },
 
-  evaluateAndSubmit: async (attemptId, answers) => {
+  getHistoryByUser: async (userId) => {
+    return QuizAttempt.find({
+      userId,
+      status: "SUBMITTED",
+    })
+      .sort({ completedAt: -1 })
+      .populate({
+        path: "quizId",
+        populate: {
+          path: "unitId",
+          select: "name unitNumber", // Fetch specific unit info
+        },
+      });
+  },
+
+  evaluateAndSubmit: async (attemptId, answers, timeSpent = 0) => {
     const quizAttempt = await QuizAttempt.findById(attemptId);
     if (!quizAttempt) {
       throw new Error("Quiz attempt not found");
@@ -103,6 +118,7 @@ const quizAttemptsModel = {
       score,
       percentage,
       status: "SUBMITTED",
+      timeSpent: timeSpent, // Save final time
       completedAt: new Date(),
     });
 
