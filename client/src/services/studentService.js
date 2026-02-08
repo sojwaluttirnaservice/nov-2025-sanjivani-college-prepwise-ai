@@ -1,4 +1,5 @@
 import { STUDENT_STATS } from "../data/student";
+import { instance } from "../utils/instance";
 
 // Mock Data
 const MOCK_SUBJECTS = [
@@ -51,9 +52,43 @@ const MOCK_QUESTIONS = [
 
 export const studentService = {
   getStats: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(STUDENT_STATS), 500);
-    });
+    const response = await instance.get("/analytics/dashboard");
+    console.log(
+      "[Service] getStats - Full response from interceptor:",
+      response,
+    );
+    console.log("[Service] getStats - response.data:", response.data);
+    // Interceptor already returns response.data, so response IS the API envelope
+    // API structure: { statusCode, success, data: { stats: {...} } }
+    return response.data; // This returns { stats: {...} }
+  },
+
+  getDashboardStats: async () => {
+    const response = await instance.get("/analytics/dashboard");
+    console.log("[Service] Dashboard - Full interceptor response:", response);
+    console.log(
+      "[Service] Dashboard - response.data (payload):",
+      response.data,
+    );
+    // Interceptor already unwrapped, response = { statusCode, success, data: {...} }
+    return response.data; // Returns { stats: {...} }
+  },
+
+  getPerformanceTrends: async (range = "30d") => {
+    const response = await instance.get(
+      `/analytics/performance?range=${range}`,
+    );
+    console.log(
+      `[Service] Performance (${range}) - response.data:`,
+      response.data,
+    );
+    return response.data; // Returns { trends: [...] }
+  },
+
+  getTopicMastery: async () => {
+    const response = await instance.get("/analytics/topics");
+    console.log("[Service] Topics - response.data:", response.data);
+    return response.data; // Returns { topics: [...] }
   },
 
   getSubjects: async () => {
