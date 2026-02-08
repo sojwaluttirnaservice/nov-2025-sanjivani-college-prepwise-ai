@@ -1,0 +1,74 @@
+# PrepWise AI – Project Progress & Architecture Report
+Author: Antigravity AI
+Date: January 22, 2026
+
+## 1. Executive Summary
+PrepWise AI is a robust learning management and assessment platform built using the MERN stack (MongoDB, Express, React, Node.js). The project has transitioned from a mock-based prototype to a fully integrated, versioned API system with a clean, modular frontend. Current progress focus has been on student profile management, assessment flows, and real-time state synchronization.
+
+---
+
+## 2. Main Folder Structure
+
+### Backend (`/api`)
+The backend follows a Controller-Model-Schema pattern with centralized utility management.
+
+```text
+api/
+├── app.js                 # Express application setup
+├── bin/                   # Server bootstrap and helper scripts (seeding, clearing)
+├── config/                # DB connection and environment-based configs
+├── controllers/v1/        # Business logic for Users and Resources
+├── middlewares/           # Auth (JWT) and File Upload (Multer) logic
+├── models/                # Database interaction wrappers
+├── schemas/               # Mongoose schemas (User, Subject, Branch, Quiz, Unit, etc.)
+├── routes/                # Versioned routing system (/api/v1/...)
+├── seeds/                 # Prefilled data scripts for educational curriculum
+└── utils/                 # Centralized error handlers (AppError), responses, and enums
+```
+
+### Frontend (`/client`)
+Built with Vite + React, utilizing a modular "Wrapper-View" architecture.
+
+```text
+client/
+├── src/
+│   ├── modules/           # HEAVY LOGIC (Student, Auth, Admin modules)
+│   ├── pages/             # THIN WRAPPERS (Routing entry points)
+│   ├── redux/             # Central state (Auth, Resource slices)
+│   ├── services/          # API communication layer (Axios instances)
+│   ├── layouts/           # Shared UI structures (Main, Student, Auth, Admin)
+│   ├── components/        # Reusable UI parts (Common, Dashboard/Sidebar)
+│   ├── utils/             # Axios instance and response formatting
+│   └── config/            # Frontend environment constants
+```
+
+---
+
+## 3. Progress Milestones
+
+### A. Authentication & Authorization
+- **JWT Implementation**: Fully functional login/signup flow with token persistence in `localStorage`.
+- **Role-Based Access (RBAC)**: Distinct layouts and route guards for `STUDENT` and `ADMIN` roles.
+- **Persistent Sessions**: `verify` endpoint and Redux state hydration ensure users stay logged in.
+
+### B. Student Dashboard & Curriculum
+- **Syllabus Navigation**: Logic for selecting Branches, Subjects, and Units is established.
+- **Assessment Engine**: A 14KB `AssessmentAttemptView` handles complex test-taking logic, including progress tracking.
+- **Assessment Results**: Post-assessment summary screen with score and accuracy details.
+
+### C. Profile Management (Recent Focus)
+- **Dynamic Profile**: Replaced all hardcoded "Academic Standing" and "Performance Snapshot" data with live API data.
+- **State Synchronization**: Implemented `useQueryClient` cache invalidation to ensure UI reflects changes immediately after a PATCH request.
+- **Data Completeness**: Users can now update their Name, Branch, and Semester, with the backend automatically calculating the corresponding Year.
+
+### D. Infrastructure & Design
+- **Tailwind CSS v4**: Migrated to Tailwind v4 with the Vite plugin for high-performance styling.
+- **Modular Refactor**: Decoupled UI views from routing pages for better maintainability.
+- **Versioned API**: Backend routes now follow `/api/v1/` structure for future scaling.
+
+---
+
+## 4. Current State for Further Analysis
+- **Frameworks**: Vite, React 19, Redux Toolkit, TanStack Query v5, Tailwind CSS v4.
+- **Backend Tech**: Node.js (Express), MongoDB (Mongoose), JWT, Bcrypt.
+- **Unfinished Areas**: Admin "Question Bank" and "Student Management" modules are currently placeholders in the UI, though schemas and controllers are partially ready.

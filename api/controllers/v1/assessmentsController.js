@@ -304,6 +304,18 @@ const assessmentsController = {
           { $inc: { hitCount: 1 } },
         );
 
+        // Mark as first attempt and log it
+        if (attempt.analysisAttempts === 0) {
+          attempt.analysisAttempts = 1;
+          attempt.analysisLog = [
+            {
+              date: new Date(),
+              version: 1,
+              analysisText: attempt.aiAnalysis,
+            },
+          ];
+        }
+
         await attempt.save();
       } else {
         console.log(
@@ -322,6 +334,18 @@ const assessmentsController = {
           });
 
           attempt.aiAnalysis = analysis;
+          // Mark as first attempt and log it
+          if (attempt.analysisAttempts === 0) {
+            attempt.analysisAttempts = 1;
+            attempt.analysisLog = [
+              {
+                date: new Date(),
+                version: 1,
+                analysisText: analysis,
+              },
+            ];
+          }
+
           await attempt.save();
 
           // Cache for future use (7 days TTL)
@@ -346,6 +370,8 @@ const assessmentsController = {
         ...fullAttempt.toObject(),
         // Ensure we return the analysis and reconstructed weak topics
         aiAnalysis: attempt.aiAnalysis,
+        analysisAttempts: attempt.analysisAttempts || 0,
+        analysisLog: attempt.analysisLog || [],
         weakTopics: weakTopicsList,
       },
     });
@@ -420,6 +446,122 @@ const assessmentsController = {
 
     return sendSuccess(res, STATUS.OK, "Time updated", {
       timeSpent: attempt.timeSpent,
+    });
+  }),
+
+  /**
+   * Re-analyze assessment result (Max 2 attempts)
+   * POST /api/v1/assessments/:attemptId/analyze
+   */
+  reanalyzeAssessment: asyncHandler(async (req, res) => {
+    const { attemptId } = req.params;
+    const userId = req.user.userId || req.user._id;
+
+    const attempt = await quizAttemptsModel.getAttemptById(attemptId);
+    if (!attempt) {
+      throw new AppError("Assessment attempt not found", STATUS.NOT_FOUND);
+    }
+
+    if (attempt.userId.toString() !== userId.toString()) {
+      throw new AppError("Unauthorized access", STATUS.FORBIDDEN);
+    }
+
+    // Check attempts limit
+    if (attempt.analysisAttempts >= 2) {
+      throw new AppError(
+        "Maximum re-analysis attempts reached",
+        STATUS.BAD_REQUEST,
+      );
+    }
+
+    // Fetch full details for analysis
+    const fullAttempt = await quizAttemptsModel.Model.findById(attemptId)
+      .populate({
+        path: "answers.questionId",
+        populate: { path: "topicId" },
+      })
+      .populate({
+        path: "quizId",
+        populate: { path: "unitId" },
+      });
+
+    const weakTopicsMap = new Map();
+    fullAttempt.answers.forEach((ans) => {
+      if (!ans.isCorrect && ans.questionId && ans.questionId.topicId) {
+        const tName = ans.questionId.topicId.name;
+        const tCode = ans.questionId.topicId._id
+          .toString()
+          .substring(0, 6)
+          .toUpperCase();
+
+        if (!weakTopicsMap.has(tName)) {
+          weakTopicsMap.set(tName, {
+            topicCode: tCode,
+            topicTitle: tName,
+            subtopics: new Set(["General Concepts"]),
+          });
+        } else {
+          weakTopicsMap.get(tName).subtopics.add("General Concepts");
+        }
+      }
+    });
+
+    const weakTopicsList = Array.from(weakTopicsMap.values()).map((t) => ({
+      ...t,
+      subtopics: Array.from(t.subtopics),
+    }));
+
+    // Force regenerate analysis
+    const llmProvider = require("../../services/llm/LLMFactory").getProvider();
+    const analysis = await llmProvider.analyzeQuizAttempt({
+      unit: { name: fullAttempt.quizId.unitId.name },
+      score: fullAttempt.score,
+      totalQuestions: fullAttempt.totalQuestions,
+      weakTopics: weakTopicsList,
+    });
+
+    // Update attempt
+    attempt.aiAnalysis = analysis;
+    const newVersion = (attempt.analysisAttempts || 0) + 1;
+    attempt.analysisAttempts = newVersion;
+
+    // Add to log
+    if (!attempt.analysisLog) attempt.analysisLog = [];
+    attempt.analysisLog.push({
+      date: new Date(),
+      version: newVersion,
+      analysisText: analysis,
+    });
+
+    await attempt.save();
+
+    // Cache the new analysis
+    const weakTopicsStr = weakTopicsList
+      .map((t) => t.topicTitle)
+      .sort()
+      .join(",");
+    const cacheKey = `${attempt.score}_${weakTopicsStr}`;
+    const { AnalysisCache } = require("../../schemas/AnalysisCache");
+
+    // Upsert cache with new analysis
+    await AnalysisCache.findOneAndUpdate(
+      {
+        unitId: fullAttempt.quizId.unitId._id,
+        cacheKey: cacheKey,
+      },
+      {
+        analysisText: analysis,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Refresh TTL
+      },
+      { upsert: true, new: true },
+    );
+
+    return sendSuccess(res, STATUS.OK, "Assessment re-analyzed successfully", {
+      result: {
+        aiAnalysis: attempt.aiAnalysis,
+        analysisAttempts: attempt.analysisAttempts,
+        analysisLog: attempt.analysisLog,
+      },
     });
   }),
 };

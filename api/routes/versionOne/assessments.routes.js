@@ -58,4 +58,15 @@ assessmentsRouter.get(
   assessmentsController.getAssessmentResult,
 );
 
+/**
+ * @route   POST /api/v1/assessments/:attemptId/analyze
+ * @desc    Re-analyze assessment result (Max 2 attempts)
+ * @access  Private (Student)
+ */
+assessmentsRouter.post(
+  "/:attemptId/analyze",
+  isStudent,
+  assessmentsController.reanalyzeAssessment,
+);
+
 module.exports = assessmentsRouter;

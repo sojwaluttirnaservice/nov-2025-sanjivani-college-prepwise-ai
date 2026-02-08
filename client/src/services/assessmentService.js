@@ -59,4 +59,13 @@ export const assessmentService = {
     const response = await instance.get(`/assessments/${attemptId}/result`);
     return response.data;
   },
+
+  /**
+   * Re-analyze assessment result.
+   * @param {string} attemptId
+   */
+  reanalyzeResult: async (attemptId) => {
+    const response = await instance.post(`/assessments/${attemptId}/analyze`);
+    return response.data;
+  },
 };

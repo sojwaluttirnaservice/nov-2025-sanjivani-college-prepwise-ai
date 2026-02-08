@@ -110,6 +110,19 @@ const quizAttemptSchema = new mongoose.Schema(
       type: String, // or Object if structured
       default: null,
     },
+
+    analysisAttempts: {
+      type: Number,
+      default: 0,
+    },
+
+    analysisLog: [
+      {
+        date: { type: Date, default: Date.now },
+        version: { type: Number }, // 1, 2
+        analysisText: { type: String }, // Store content
+      },
+    ],
   },
   { timestamps: true },
 );
