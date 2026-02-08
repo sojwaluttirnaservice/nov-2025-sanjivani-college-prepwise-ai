@@ -45,13 +45,24 @@ const AssessmentResultsView = ({ data }) => {
         setIsAnalyzing(true);
         try {
             const data = await assessmentService.reanalyzeResult(attemptId);
+
+            // CRITICAL: Always use server response as source of truth
             setLocalAnalysis(data.result.aiAnalysis);
-            setLocalAttempts(data.result.analysisAttempts);
+            setLocalAttempts(data.result.analysisAttempts); // Never client-side increment
             setLocalLog(data.result.analysisLog);
+
             toast.success('Analysis updated successfully');
         } catch (error) {
             console.error(error);
-            toast.error(error?.response?.data?.message || 'Failed to re-analyze');
+
+            // Handle limit reached (403 Forbidden)
+            if (error?.response?.status === 403) {
+                toast.error('Maximum re-analysis attempts reached');
+                // Lock UI by setting to limit
+                setLocalAttempts(2);
+            } else {
+                toast.error(error?.response?.data?.message || 'Failed to re-analyze');
+            }
         } finally {
             setIsAnalyzing(false);
         }

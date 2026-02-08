@@ -3,19 +3,18 @@
  * @description
  * Caches AI-generated performance analysis to avoid redundant LLM calls.
  *
- * WHY THIS EXISTS:
- * - Analysis generation costs quota
- * - Same score + same weak topics = virtually identical analysis
- * - Students with similar performance get similar feedback
+ * CACHE ISOLATION STRATEGY:
+ * - Each attempt gets its own isolated cache entries
+ * - Each analysis version (1, 2) is cached independently
+ * - Cache is APPEND-ONLY (no overwrites)
+ * - Cache key: analysis:{attemptId}:v{version}
  *
- * IMPACT:
- * - Reduces analysis LLM calls by 20-30%
- * - Instant feedback for common score patterns
+ * WHY VERSION-SPECIFIC:
+ * - Version 1 cache must not be destroyed when Version 2 is generated
+ * - Students can view historical analysis versions
+ * - Re-analysis can hit cache if already generated
  *
- * CACHE KEY STRATEGY:
- * - Key = `score_weakTopics` (e.g., "7_Data Structures,Algorithms")
- * - TTL = 7 days (analysis quality doesn't degrade quickly)
- * - Per unit (different units = different advice)
+ * TTL: 30 days (immutable entries, long-lived)
  */
 
 const mongoose = require("mongoose");
@@ -23,25 +22,34 @@ const mongoose = require("mongoose");
 const analysisCacheSchema = new mongoose.Schema(
   {
     /**
-     * Reference to the unit this analysis belongs to
-     * Different units need different feedback even for same score
+     * The specific quiz attempt this analysis belongs to
+     * CRITICAL: Ensures cache isolation per student
      */
-    unitId: {
+    attemptId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Unit",
+      ref: "QuizAttempt",
       required: true,
       index: true,
     },
 
     /**
-     * Cache key derived from performance signature
-     * Format: "{score}_{sortedWeakTopics}"
-     * Example: "7_Algorithms,Data Structures"
-     *
-     * WHY SORTED: "A,B" and "B,A" should match same cache entry
+     * Analysis version number (1 = initial, 2 = re-analysis)
+     * CRITICAL: Enables immutable, append-only cache
      */
-    cacheKey: {
-      type: String,
+    analysisVersion: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 2, // Based on current limit
+    },
+
+    /**
+     * Unit reference for filtering/cleanup
+     * (Not part of cache key, but useful for queries)
+     */
+    unitId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Unit",
       required: true,
       index: true,
     },
@@ -56,31 +64,34 @@ const analysisCacheSchema = new mongoose.Schema(
     },
 
     /**
-     * Metadata for monitoring and debugging
+     * When this cache entry was created
+     * (Replaces hitCount - cache is now immutable)
      */
-    hitCount: {
-      type: Number,
-      default: 0,
-      description: "How many times this cache entry has been served",
+    generatedAt: {
+      type: Date,
+      default: Date.now,
     },
 
     /**
-     * Auto-delete after 7 days
-     * Analysis advice doesn't change much, but curriculum might evolve
+     * Auto-delete after 30 days
+     * Longer TTL because cache is versioned and immutable
      */
     expiresAt: {
       type: Date,
-      default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       index: true,
     },
   },
   {
-    timestamps: true, // Track creation/update times
+    timestamps: true,
   },
 );
 
-// Compound index for fast lookups
-analysisCacheSchema.index({ unitId: 1, cacheKey: 1 }, { unique: true });
+// CRITICAL: Unique index ensures one cache entry per (attempt, version) pair
+analysisCacheSchema.index(
+  { attemptId: 1, analysisVersion: 1 },
+  { unique: true },
+);
 
 // TTL index to auto-delete expired entries
 analysisCacheSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

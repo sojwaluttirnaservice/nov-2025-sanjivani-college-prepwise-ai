@@ -257,69 +257,55 @@ const assessmentsController = {
     /**
      * 🎯 QUOTA OPTIMIZATION STRATEGY #2: Analysis Caching
      *
-     * OLD APPROACH:
-     * - Generate analysis via LLM every time result is viewed
-     * - Same score + same weak topics = regenerating identical analysis
+     * LAZY ANALYSIS GENERATION WITH VERSION-SPECIFIC CACHE
      *
-     * NEW APPROACH:
-     * - Create cache key from score + weak topics combination
-     * - Check if we've generated analysis for this pattern before
-     * - If yes → serve from cache (instant, free, 0 quota cost)
-     * - If no → generate via LLM and cache for 7 days
+     * WHY VERSION-SPECIFIC:
+     * - Cache key is now: analysis:{attemptId}:v{version}
+     * - Each attempt + version combination gets isolated cache
+     * - No cross-student cache sharing
      *
-     * IMPACT: Reduces analysis LLM calls by 20-30%
-     * EXAMPLE: 10 students score 7/10 with weak topic "Algorithms" → 1 LLM call instead of 10
+     * IMPACT: Reduces LLM calls while maintaining per-student isolation
      */
     const { AnalysisCache } = require("../../schemas/AnalysisCache");
 
-    // Build cache key: "score_sortedWeakTopics"
-    // Sorting ensures "A,B" and "B,A" hit same cache
-    const weakTopicsStr = weakTopicsList
-      .map((t) => t.topicTitle)
-      .sort()
-      .join(",");
-    const cacheKey = `${attempt.score}_${weakTopicsStr}`;
-
-    // Check if analysis is missing OR invalid (fallback error message)
+    // Check if analysis is missing OR invalid
     const isAnalysisInvalid =
       !attempt.aiAnalysis ||
       attempt.aiAnalysis.includes("Unable to generate") ||
       attempt.aiAnalysis.includes("pending");
 
     if (isAnalysisInvalid) {
-      // Try to get from cache first
+      // Determine next version (for initial analysis, this is v1)
+      const nextVersion = (attempt.analysisAttempts || 0) + 1;
+
+      // Try cache lookup with version-specific key
       const cached = await AnalysisCache.findOne({
-        unitId: fullAttempt.quizId.unitId._id,
-        cacheKey: cacheKey,
-        expiresAt: { $gte: new Date() }, // Not expired
+        attemptId: attempt._id,
+        analysisVersion: nextVersion,
+        expiresAt: { $gte: new Date() },
       });
 
       if (cached) {
-        console.log(`✅ [AnalysisCache] Cache HIT for key: ${cacheKey}`);
+        console.log(
+          `✅ [AnalysisCache] Cache HIT for attempt:${attempt._id} v${nextVersion}`,
+        );
         attempt.aiAnalysis = cached.analysisText;
 
-        // Increment hit counter for analytics
-        await AnalysisCache.updateOne(
-          { _id: cached._id },
-          { $inc: { hitCount: 1 } },
-        );
-
-        // Mark as first attempt and log it
-        if (attempt.analysisAttempts === 0) {
-          attempt.analysisAttempts = 1;
-          attempt.analysisLog = [
-            {
-              date: new Date(),
-              version: 1,
-              analysisText: attempt.aiAnalysis,
-            },
-          ];
+        // Initialize analysis log
+        if (!attempt.analysisLog) {
+          attempt.analysisLog = [];
         }
+        attempt.analysisLog.push({
+          date: cached.generatedAt,
+          version: nextVersion,
+          analysisText: cached.analysisText,
+        });
+        attempt.analysisAttempts = nextVersion;
 
         await attempt.save();
       } else {
         console.log(
-          `⚠️ [AnalysisCache] Cache MISS for key: ${cacheKey}, generating...`,
+          `⚠️ [AnalysisCache] Cache MISS for attempt:${attempt._id} v${nextVersion}, generating...`,
         );
 
         // Generate new analysis via LLM
@@ -331,32 +317,35 @@ const assessmentsController = {
             score: fullAttempt.score,
             totalQuestions: fullAttempt.totalQuestions,
             weakTopics: weakTopicsList,
+            analysisVersion: nextVersion, // NEW: Informs LLM of version
           });
 
           attempt.aiAnalysis = analysis;
-          // Mark as first attempt and log it
-          if (attempt.analysisAttempts === 0) {
-            attempt.analysisAttempts = 1;
-            attempt.analysisLog = [
-              {
-                date: new Date(),
-                version: 1,
-                analysisText: analysis,
-              },
-            ];
+
+          // Initialize analysis log
+          if (!attempt.analysisLog) {
+            attempt.analysisLog = [];
           }
+          attempt.analysisLog.push({
+            date: new Date(),
+            version: nextVersion,
+            analysisText: analysis,
+          });
+          attempt.analysisAttempts = nextVersion;
 
           await attempt.save();
 
-          // Cache for future use (7 days TTL)
+          // Store in version-specific cache (append-only)
           await AnalysisCache.create({
+            attemptId: attempt._id,
+            analysisVersion: nextVersion,
             unitId: fullAttempt.quizId.unitId._id,
-            cacheKey: cacheKey,
             analysisText: analysis,
+            generatedAt: new Date(),
           });
 
           console.log(
-            `✅ [AnalysisCache] Cached analysis for key: ${cacheKey}`,
+            `✅ [AnalysisCache] Cached analysis for attempt:${attempt._id} v${nextVersion}`,
           );
         } catch (err) {
           console.error("Analysis generation failed", err);
@@ -452,29 +441,58 @@ const assessmentsController = {
   /**
    * Re-analyze assessment result (Max 2 attempts)
    * POST /api/v1/assessments/:attemptId/analyze
+   *
+   * CRITICAL REQUIREMENTS:
+   * 1. Race-safe limit enforcement (no concurrent bypass)
+   * 2. Version-specific cache lookup before generation
+   * 3. Append-only cache storage (no overwrites)
+   * 4. AI variation via versioned prompts
    */
   reanalyzeAssessment: asyncHandler(async (req, res) => {
     const { attemptId } = req.params;
     const userId = req.user.userId || req.user._id;
 
-    const attempt = await quizAttemptsModel.getAttemptById(attemptId);
-    if (!attempt) {
-      throw new AppError("Assessment attempt not found", STATUS.NOT_FOUND);
-    }
+    // STEP 1: RACE-SAFE LIMIT CHECK
+    // Use findOneAndUpdate to atomically check + increment
+    // This prevents concurrent requests from both passing the limit check
+    const attemptBeforeUpdate = await quizAttemptsModel.Model.findOneAndUpdate(
+      {
+        _id: attemptId,
+        userId: userId,
+        analysisAttempts: { $lt: 2 }, // CRITICAL: Only proceed if < 2
+      },
+      {
+        $inc: { analysisAttempts: 1 }, // Reserve the slot
+      },
+      {
+        new: false, // Return document BEFORE increment
+      },
+    );
 
-    if (attempt.userId.toString() !== userId.toString()) {
-      throw new AppError("Unauthorized access", STATUS.FORBIDDEN);
-    }
-
-    // Check attempts limit
-    if (attempt.analysisAttempts >= 2) {
+    if (!attemptBeforeUpdate) {
+      // Either: (a) attempt not found, (b) wrong user, or (c) limit reached
+      // Check which case to provide proper error
+      const existingAttempt = await quizAttemptsModel.getAttemptById(attemptId);
+      if (!existingAttempt) {
+        throw new AppError("Assessment attempt not found", STATUS.NOT_FOUND);
+      }
+      if (existingAttempt.userId.toString() !== userId.toString()) {
+        throw new AppError("Unauthorized access", STATUS.FORBIDDEN);
+      }
+      // Rollback the increment (if it happened due to race)
+      await quizAttemptsModel.Model.updateOne(
+        { _id: attemptId },
+        { $set: { analysisAttempts: 2 } }, // Ensure it stays at 2
+      );
       throw new AppError(
         "Maximum re-analysis attempts reached",
-        STATUS.BAD_REQUEST,
+        STATUS.FORBIDDEN,
       );
     }
 
-    // Fetch full details for analysis
+    const nextVersion = (attemptBeforeUpdate.analysisAttempts || 0) + 1;
+
+    // STEP 2: FETCH FULL DETAILS
     const fullAttempt = await quizAttemptsModel.Model.findById(attemptId)
       .populate({
         path: "answers.questionId",
@@ -485,6 +503,7 @@ const assessmentsController = {
         populate: { path: "unitId" },
       });
 
+    // Build weak topics list
     const weakTopicsMap = new Map();
     fullAttempt.answers.forEach((ans) => {
       if (!ans.isCorrect && ans.questionId && ans.questionId.topicId) {
@@ -511,56 +530,72 @@ const assessmentsController = {
       subtopics: Array.from(t.subtopics),
     }));
 
-    // Force regenerate analysis
-    const llmProvider = require("../../services/llm/LLMFactory").getProvider();
-    const analysis = await llmProvider.analyzeQuizAttempt({
-      unit: { name: fullAttempt.quizId.unitId.name },
-      score: fullAttempt.score,
-      totalQuestions: fullAttempt.totalQuestions,
-      weakTopics: weakTopicsList,
+    // STEP 3: CACHE LOOKUP (Version-specific)
+    const { AnalysisCache } = require("../../schemas/AnalysisCache");
+    const cached = await AnalysisCache.findOne({
+      attemptId: attemptId,
+      analysisVersion: nextVersion,
+      expiresAt: { $gte: new Date() },
     });
 
-    // Update attempt
-    attempt.aiAnalysis = analysis;
-    const newVersion = (attempt.analysisAttempts || 0) + 1;
-    attempt.analysisAttempts = newVersion;
+    let analysis;
 
-    // Add to log
-    if (!attempt.analysisLog) attempt.analysisLog = [];
-    attempt.analysisLog.push({
+    if (cached) {
+      console.log(
+        `✅ [AnalysisCache] Cache HIT for re-analysis attempt:${attemptId} v${nextVersion}`,
+      );
+      analysis = cached.analysisText;
+    } else {
+      // STEP 4: GENERATE WITH AI VARIATION
+      console.log(
+        `⚠️ [AnalysisCache] Cache MISS for attempt:${attemptId} v${nextVersion}, generating...`,
+      );
+
+      const llmProvider =
+        require("../../services/llm/LLMFactory").getProvider();
+      analysis = await llmProvider.analyzeQuizAttempt({
+        unit: { name: fullAttempt.quizId.unitId.name },
+        score: fullAttempt.score,
+        totalQuestions: fullAttempt.totalQuestions,
+        weakTopics: weakTopicsList,
+        analysisVersion: nextVersion, // CRITICAL: Forces variation
+        previousAnalysis: attemptBeforeUpdate.aiAnalysis, // Avoid repetition
+      });
+
+      // STEP 5: STORE IN CACHE (Append-only, immutable)
+      await AnalysisCache.create({
+        attemptId: attemptId,
+        analysisVersion: nextVersion,
+        unitId: fullAttempt.quizId.unitId._id,
+        analysisText: analysis,
+        generatedAt: new Date(),
+      });
+
+      console.log(
+        `✅ [AnalysisCache] Cached re-analysis for attempt:${attemptId} v${nextVersion}`,
+      );
+    }
+
+    // STEP 6: FINALIZE (Update attempt with new analysis)
+    const updatedAttempt = await quizAttemptsModel.getAttemptById(attemptId);
+    updatedAttempt.aiAnalysis = analysis;
+
+    if (!updatedAttempt.analysisLog) {
+      updatedAttempt.analysisLog = [];
+    }
+    updatedAttempt.analysisLog.push({
       date: new Date(),
-      version: newVersion,
+      version: nextVersion,
       analysisText: analysis,
     });
 
-    await attempt.save();
-
-    // Cache the new analysis
-    const weakTopicsStr = weakTopicsList
-      .map((t) => t.topicTitle)
-      .sort()
-      .join(",");
-    const cacheKey = `${attempt.score}_${weakTopicsStr}`;
-    const { AnalysisCache } = require("../../schemas/AnalysisCache");
-
-    // Upsert cache with new analysis
-    await AnalysisCache.findOneAndUpdate(
-      {
-        unitId: fullAttempt.quizId.unitId._id,
-        cacheKey: cacheKey,
-      },
-      {
-        analysisText: analysis,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Refresh TTL
-      },
-      { upsert: true, new: true },
-    );
+    await updatedAttempt.save();
 
     return sendSuccess(res, STATUS.OK, "Assessment re-analyzed successfully", {
       result: {
-        aiAnalysis: attempt.aiAnalysis,
-        analysisAttempts: attempt.analysisAttempts,
-        analysisLog: attempt.analysisLog,
+        aiAnalysis: updatedAttempt.aiAnalysis,
+        analysisAttempts: updatedAttempt.analysisAttempts,
+        analysisLog: updatedAttempt.analysisLog,
       },
     });
   }),
