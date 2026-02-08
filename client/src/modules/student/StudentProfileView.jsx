@@ -39,11 +39,13 @@ const StudentProfileView = () => {
         enabled: !!token,
     });
 
-    const { data: stats } = useQuery({
+    const { data: statsResponse } = useQuery({
         queryKey: ['student-stats'],
         queryFn: studentService.getStats,
         enabled: !!token,
     });
+
+    const stats = statsResponse?.stats || {};
 
     useEffect(() => {
         if (profile) {
@@ -117,17 +119,32 @@ const StudentProfileView = () => {
         }
     });
 
+    const getAcademicStanding = () => {
+        // Updated to use totalAssessments from backend
+        if (!stats || !stats.totalAssessments || Number(stats.totalAssessments) === 0) return 'New Student';
+        const score = stats.averageScore || 0;
+        if (score >= 80) return 'Excellent';
+        if (score >= 60) return 'Good Standing';
+        return 'Needs Support';
+    };
+
+    const displayYear = currentUser?.year
+        ? `Year ${currentUser.year}`
+        : currentUser?.semester
+            ? `Year ${Math.ceil(currentUser.semester / 2)}`
+            : '—';
+
     const academicInfo = [
         { label: 'Branch', value: currentBranch?.name || '—', icon: GraduationCap },
         { label: 'Semester', value: currentUser?.semester ? `Semester ${currentUser.semester}` : '—', icon: BookOpen },
-        { label: 'Year', value: currentUser?.year ? `Year ${currentUser.year}` : '—', icon: Calendar },
-        { label: 'Standing', value: stats?.averageScore >= 80 ? 'Excellent' : stats?.averageScore >= 60 ? 'Good Standing' : 'Needs Support', icon: Award },
+        { label: 'Year', value: displayYear, icon: Calendar },
+        { label: 'Standing', value: getAcademicStanding(), icon: Award },
     ];
 
     const performanceMetrics = [
-        { label: 'Assessments Taken', value: stats?.completedAssessments || '0', color: 'text-indigo-600' },
+        { label: 'Assessments Taken', value: stats?.totalAssessments || '0', color: 'text-indigo-600' },
         { label: 'Average Accuracy', value: `${stats?.averageScore || 0}%`, color: 'text-emerald-600' },
-        { label: 'Study Hours', value: `${stats?.studyHours || 0}h`, color: 'text-amber-600' },
+        { label: 'Study Hours', value: `${stats?.totalHoursStudy || 0}h`, color: 'text-amber-600' },
     ];
 
     return (
