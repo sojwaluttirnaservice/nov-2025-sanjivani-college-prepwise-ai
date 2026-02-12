@@ -50,7 +50,12 @@ const AssessmentResultDetailPage = () => {
             answers: result.answers || [] // Pass answers for detailed review
         },
         unitTitle: `Unit ${result.quizId?.unitId?.unitNumber || '?'}: ${result.quizId?.unitId?.name || 'Assessment'}`,
-        aiAnalysis: result.aiAnalysis
+        unitId: result.quizId?.unitId?._id,
+        subjectId: result.quizId?.unitId?.subjectId,
+        aiAnalysis: result.aiAnalysis,
+        analysisAttempts: result.analysisAttempts || 0,
+        analysisLog: result.analysisLog || [],
+        attemptId: result._id // Pass attemptId for re-analysis
     };
 
     return (

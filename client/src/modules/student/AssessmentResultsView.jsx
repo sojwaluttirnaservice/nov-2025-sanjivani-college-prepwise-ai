@@ -1,15 +1,72 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Trophy, Target, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Sparkles, TrendingUp, Clock, Award } from 'lucide-react';
+import { Trophy, Target, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Sparkles, TrendingUp, Clock, Award, RefreshCw, History, BookOpen } from 'lucide-react';
 import Container from '../../components/utils/Container';
-
+import { assessmentService } from '../../services/assessmentService';
+import { toast } from 'react-hot-toast';
 const AssessmentResultsView = ({ data }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [expandedQuestion, setExpandedQuestion] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [localAnalysis, setLocalAnalysis] = useState(null);
+    const [localAttempts, setLocalAttempts] = useState(null);
+    const [localLog, setLocalLog] = useState(null);
+    const [showRetakeModal, setShowRetakeModal] = useState(false);
 
     const viewData = data || location.state;
-    const { results, unitTitle, aiAnalysis } = viewData || {};
+    const {
+        results,
+        unitTitle,
+        aiAnalysis: propAnalysis,
+        analysisAttempts: propAttempts,
+        analysisLog: propLog,
+        attemptId: propAttemptId,
+        unitId: propUnitId,
+        subjectId: propSubjectId
+    } = viewData || {};
+
+    // Extract attemptId and other props if nested in results (compatibility with submission flow)
+    const attemptId = propAttemptId || results?.attemptId || results?._id;
+    // Fallback for when data comes from submission result directly (might not have unitId/subjectId at top level)
+    const unitId = propUnitId || results?.quizId?.unitId;
+    const subjectId = propSubjectId || results?.quizId?.subjectId; // unlikely to be here but safe check
+
+    const initialAttempts = propAttempts ?? results?.analysisAttempts ?? 0;
+
+    // Use local state if available, otherwise prop
+    const currentAnalysis = localAnalysis || propAnalysis || results?.aiAnalysis;
+    const currentAttempts = localAttempts !== null ? localAttempts : initialAttempts;
+    const currentLog = localLog || propLog || results?.analysisLog || [];
+
+    const handleReanalyze = async () => {
+        if (!attemptId) return;
+
+        setIsAnalyzing(true);
+        try {
+            const data = await assessmentService.reanalyzeResult(attemptId);
+
+            // CRITICAL: Always use server response as source of truth
+            setLocalAnalysis(data.result.aiAnalysis);
+            setLocalAttempts(data.result.analysisAttempts); // Never client-side increment
+            setLocalLog(data.result.analysisLog);
+
+            toast.success('Analysis updated successfully');
+        } catch (error) {
+            console.error(error);
+
+            // Handle limit reached (403 Forbidden)
+            if (error?.response?.status === 403) {
+                toast.error('Maximum re-analysis attempts reached');
+                // Lock UI by setting to limit
+                setLocalAttempts(2);
+            } else {
+                toast.error(error?.response?.data?.message || 'Failed to re-analyze');
+            }
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
 
     if (!viewData) {
         return (
@@ -68,15 +125,102 @@ const AssessmentResultsView = ({ data }) => {
                         {/* Left Column - Main Content (2/3) */}
                         <div className="lg:col-span-2 space-y-4 md:space-y-6">
                             {/* AI Analysis Compact */}
-                            {aiAnalysis && (
-                                <div className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl border border-indigo-200/50 shadow-sm p-4 md:p-6">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="p-1.5 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg shadow-sm">
-                                            <Sparkles className="w-4 h-4 text-indigo-600" />
+                            {(currentAnalysis || currentAttempts < 2) && (
+                                <div className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl border border-indigo-200/50 shadow-sm relative overflow-hidden flex flex-col">
+                                    {currentAttempts >= 2 && (
+                                        <div className="absolute top-0 right-0 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-bl-lg border-b border-l border-indigo-200 z-10">
+                                            Max Analysis Limit Reached
                                         </div>
-                                        <h3 className="text-base font-bold text-gray-900">AI Performance Analysis</h3>
+                                    )}
+
+                                    {/* Tabs for History */}
+                                    {currentLog.length > 1 && (
+                                        <div className="flex border-b border-indigo-100 bg-indigo-50/30 px-4 pt-4 gap-2">
+                                            {currentLog.map((log, idx) => {
+                                                const isLatest = idx === currentLog.length - 1;
+                                                const isActive = (localAnalysis === log.analysisText) || (!localAnalysis && isLatest);
+
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setLocalAnalysis(log.analysisText)}
+                                                        className={`pb-2 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${isActive
+                                                            ? 'border-indigo-600 text-indigo-700'
+                                                            : 'border-transparent text-slate-500 hover:text-indigo-600'
+                                                            }`}
+                                                    >
+                                                        <Clock className="w-3 h-3" />
+                                                        {isLatest ? 'Latest Analysis' : `Version ${log.version}`}
+                                                        <span className="font-normal opacity-60 ml-1">
+                                                            {formatDate(log.date).split(',')[0]}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    <div className="p-4 md:p-6">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1.5 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg shadow-sm">
+                                                        <Sparkles className="w-4 h-4 text-indigo-600" />
+                                                    </div>
+                                                    <h3 className="text-base font-bold text-gray-900">AI Performance Analysis</h3>
+                                                </div>
+
+                                                {/* Meta Info */}
+                                                {currentLog.length > 0 && (
+                                                    <div className="text-xs text-slate-500 ml-9 flex items-center gap-2">
+                                                        <span className="font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                                                            {currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis))
+                                                                ? `Version ${currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis)).version}`
+                                                                : 'Current Version'}
+                                                        </span>
+                                                        <span>
+                                                            {currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis))
+                                                                ? formatDate(currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis)).date)
+                                                                : ''}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {currentAttempts < 2 && attemptId && currentLog.length === 0 && (
+                                                <button
+                                                    onClick={handleReanalyze}
+                                                    disabled={isAnalyzing}
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-50 disabled:opacity-50 transition-all shadow-sm self-start mt-1"
+                                                >
+                                                    <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                                                    {isAnalyzing ? 'Analyzing...' : (currentAnalysis ? 'Re-analyze' : 'Generate Analysis')}
+                                                </button>
+                                            )}
+
+                                            {/* Show re-analyze button only on latest view if allowed */}
+                                            {currentAttempts < 2 && attemptId && currentLog.length > 0 && (!localAnalysis || localAnalysis === currentLog[currentLog.length - 1].analysisText) && (
+                                                <button
+                                                    onClick={handleReanalyze}
+                                                    disabled={isAnalyzing}
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-50 disabled:opacity-50 transition-all shadow-sm self-start mt-1"
+                                                >
+                                                    <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                                                    {isAnalyzing ? 'Re-analyzing...' : 'Re-analyze'}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {currentAnalysis ? (
+                                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">{localAnalysis || currentAnalysis}</p>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 text-slate-500 text-sm">
+                                                No analysis available yet. Click the button above to generate.
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{aiAnalysis}</p>
                                 </div>
                             )}
 
@@ -90,14 +234,14 @@ const AssessmentResultsView = ({ data }) => {
                                 </div>
                                 <div className="p-4 md:p-6 space-y-4">
                                     {results.weakTopics.map((topic, idx) => (
-                                        <div key={idx} className="border-l-4 border-red-400 pl-4 bg-gradient-to-r from-red-50/40 to-transparent rounded-r-lg py-2">
+                                        <div key={idx} className="border-l-4 border-red-400 pl-4 bg-linear-to-r from-red-50/40 to-transparent rounded-r-lg py-2">
                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                 <h4 className="font-bold text-gray-900 text-sm md:text-base">{topic.topicTitle}</h4>
-                                                <span className="text-xs font-bold text-red-700 bg-gradient-to-r from-red-100 to-red-200/50 px-2 py-0.5 rounded shrink-0">{topic.topicCode}</span>
+                                                <span className="text-xs font-bold text-red-700 bg-linear-to-r from-red-100 to-red-200/50 px-2 py-0.5 rounded shrink-0">{topic.topicCode}</span>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {topic.subtopics.map((sub, sIdx) => (
-                                                    <span key={sIdx} className="text-xs bg-gradient-to-r from-white to-red-50/50 border border-red-200 text-slate-700 px-2.5 py-1 rounded-full shadow-sm">
+                                                    <span key={sIdx} className="text-xs bg-linear-to-r from-white to-red-50/50 border border-red-200 text-slate-700 px-2.5 py-1 rounded-full shadow-sm">
                                                         {sub}
                                                     </span>
                                                 ))}
@@ -147,7 +291,7 @@ const AssessmentResultsView = ({ data }) => {
                                                     {/* Expanded Content with Smooth Animation */}
                                                     <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                                         <div className="px-4 md:px-6 pb-4 space-y-3">
-                                                            <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-lg border border-slate-200 p-3 md:p-4 shadow-sm">
+                                                            <div className="bg-linear-to-br from-white to-slate-50/50 rounded-lg border border-slate-200 p-3 md:p-4 shadow-sm">
                                                                 <div className="space-y-2">
                                                                     {question.options.map((opt) => {
                                                                         const isUserSelected = opt.key === userSelected;
@@ -228,13 +372,41 @@ const AssessmentResultsView = ({ data }) => {
                                         Focus on the weak topics identified above to strengthen your understanding.
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => navigate('/syllabus/subjects')}
-                                    className="w-full bg-white text-indigo-700 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <span>Retry Assessment</span>
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
+
+                                <div className="flex flex-col gap-3">
+                                    {/* Primary Action: Review Material (Logic: Weak topics found? Review. Perfect score? Retake/Next) */}
+                                    {subjectId && (
+                                        <button
+                                            onClick={() => navigate(`/syllabus/subjects/${subjectId}`)}
+                                            className="w-full bg-white/10 border border-white/20 text-white py-3 rounded-xl font-bold text-sm hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <BookOpen className="w-4 h-4" />
+                                            <span>Review Unit Material</span>
+                                        </button>
+                                    )}
+
+                                    {/* Secondary Action: Retake (if unitId available) */}
+                                    {unitId && (
+                                        <button
+                                            onClick={() => setShowRetakeModal(true)}
+                                            className="w-full bg-white text-indigo-700 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <span>Retake Assessment</span>
+                                            <RefreshCw className="w-4 h-4" />
+                                        </button>
+                                    )}
+
+                                    {/* Fallback if no IDs */}
+                                    {!unitId && !subjectId && (
+                                        <button
+                                            onClick={() => navigate('/syllabus/subjects')}
+                                            className="w-full bg-white text-indigo-700 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <span>Go to Curriculum</span>
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Dashboard Link */}
@@ -248,8 +420,51 @@ const AssessmentResultsView = ({ data }) => {
                     </div>
                 </div>
             </Container>
+
+            {/* Retake Confirmation Modal */}
+            {showRetakeModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-white/20">
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <RefreshCw className="w-8 h-8 text-indigo-600" />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-2">Retake Assessment?</h3>
+                            <p className="text-slate-500 font-medium mb-8">
+                                You are about to start a new attempt for <span className="text-indigo-600 font-bold">{unitTitle || 'this unit'}</span>. This will be recorded as a new attempt in your history.
+                            </p>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowRetakeModal(false)}
+                                    className="flex-1 py-4 rounded-xl font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => navigate('/assessment/attempt', { state: { unitId, unitTitle } })}
+                                    className="flex-1 py-4 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                    Start Attempt
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
+};
+
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 };
 
 export default AssessmentResultsView;

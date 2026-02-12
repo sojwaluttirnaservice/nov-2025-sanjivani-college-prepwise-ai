@@ -49,7 +49,16 @@ const UnitSelectionView = () => {
         } catch (error) {
             setGeneratingUnit(null);
             console.error(error);
-            toast.error(extractErrorMessage(error, 'Failed to generate assessment. Please try again.'));
+
+            // Handle quota/capacity errors (503)
+            if (error?.response?.status === 503) {
+                toast.error('We are experiencing high demand. Please try again in a few minutes.', {
+                    duration: 5000,
+                    icon: '⏳'
+                });
+            } else {
+                toast.error(extractErrorMessage(error, 'Failed to generate assessment. Please try again.'));
+            }
         }
     };
 

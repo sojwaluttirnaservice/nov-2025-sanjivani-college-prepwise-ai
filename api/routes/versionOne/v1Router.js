@@ -8,4 +8,16 @@ v1Router.use("/users", usersRouter);
 v1Router.use("/resources", resourcesRouter);
 v1Router.use("/assessments", require("./assessments.routes"));
 
+// Analytics Routes
+const analyticsRouter = getRouter();
+const analyticsController = require("../../controllers/v1/student.analytics.controller");
+const { isAuthenticated } = require("../../middlewares/auth");
+
+analyticsRouter.use(isAuthenticated);
+analyticsRouter.get("/dashboard", analyticsController.getDashboardStats);
+analyticsRouter.get("/performance", analyticsController.getPerformanceTrends);
+analyticsRouter.get("/topics", analyticsController.getTopicMastery);
+
+v1Router.use("/analytics", analyticsRouter);
+
 module.exports = v1Router;

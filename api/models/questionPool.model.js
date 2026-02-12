@@ -68,9 +68,9 @@ const QuestionPoolModel = {
 
     // Generate questions via LLM (this costs quota)
     const llmProvider = require("../services/llm/LLMFactory").getProvider();
-    const unitModel = require("./units.model");
+    const Unit = require("../schemas/Unit");
 
-    const unit = await unitModel.getUnitWithTopics(unitId);
+    const unit = await Unit.findById(unitId).populate("topics").lean();
     if (!unit) {
       throw new Error(`Unit ${unitId} not found`);
     }
