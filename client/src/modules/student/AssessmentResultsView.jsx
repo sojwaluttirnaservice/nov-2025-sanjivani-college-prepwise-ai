@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Trophy, Target, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Sparkles, TrendingUp, Clock, Award, RefreshCw, History, BookOpen } from 'lucide-react';
+import { Trophy, Target, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Sparkles, TrendingUp, Clock, Award, RefreshCw, History, BookOpen, Zap, Loader2 } from 'lucide-react';
 import Container from '../../components/utils/Container';
 import { assessmentService } from '../../services/assessmentService';
+import { studentService } from '../../services/studentService';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+
 const AssessmentResultsView = ({ data }) => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -33,6 +37,64 @@ const AssessmentResultsView = ({ data }) => {
     const subjectId = propSubjectId || results?.quizId?.subjectId; // unlikely to be here but safe check
 
     const initialAttempts = propAttempts ?? results?.analysisAttempts ?? 0;
+
+    // AI Study Notes History
+    const { data: notesData, refetch: refetchNotes } = useQuery({
+        queryKey: ['student-notes-history'],
+        queryFn: studentService.getNotesHistory
+    });
+
+    const [selectedNote, setSelectedNote] = useState(null);
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+
+    // AI Note Generation with timeout handling
+    const { mutate: generateNotes, isPending: isGenerating } = useMutation({
+        mutationFn: async (attemptId) => {
+            // Show processing message after 30 seconds
+            const processingTimeout = setTimeout(() => {
+                toast.loading('Still processing... This may take a minute for complex analysis.', {
+                    id: 'notes-processing',
+                    duration: 30000
+                });
+            }, 30000);
+
+            try {
+                const result = await studentService.generateStudyNotes(attemptId);
+                clearTimeout(processingTimeout);
+                toast.dismiss('notes-processing');
+                return result;
+            } catch (error) {
+                clearTimeout(processingTimeout);
+                toast.dismiss('notes-processing');
+                throw error;
+            }
+        },
+        onSuccess: (data) => {
+            toast.success('AI Boost Notes generated successfully!');
+            refetchNotes();
+            setSelectedNote(data.note);
+            setIsNoteModalOpen(true);
+        },
+        onError: (error) => {
+            // Handle timeout specifically
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                toast.loading(
+                    '⏳ Your notes are being prepared in the background! They\'ll appear in a few moments. Feel free to refresh in 1-2 minutes.',
+                    { duration: 8000 }
+                );
+                // Refetch after a delay to check if notes appeared
+                setTimeout(() => refetchNotes(), 10000);
+            } else {
+                const errorMsg = error.response?.data?.message || 'Failed to generate AI notes';
+                toast.error(errorMsg);
+            }
+        }
+    });
+
+    // Filter notes for THIS attempt only
+    const attemptNotes = notesData?.notes?.filter(n => n.attemptId === attemptId) || [];
+    const currentNotesCount = attemptNotes.length;
+    const canGenerate = currentNotesCount < 2;
 
     // Use local state if available, otherwise prop
     const currentAnalysis = localAnalysis || propAnalysis || results?.aiAnalysis;
@@ -150,7 +212,7 @@ const AssessmentResultsView = ({ data }) => {
                                                             }`}
                                                     >
                                                         <Clock className="w-3 h-3" />
-                                                        {isLatest ? 'Latest Analysis' : `Version ${log.version}`}
+                                                        {isLatest ? 'Latest Analysis' : `Version ${log.version} `}
                                                         <span className="font-normal opacity-60 ml-1">
                                                             {formatDate(log.date).split(',')[0]}
                                                         </span>
@@ -175,7 +237,7 @@ const AssessmentResultsView = ({ data }) => {
                                                     <div className="text-xs text-slate-500 ml-9 flex items-center gap-2">
                                                         <span className="font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                                                             {currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis))
-                                                                ? `Version ${currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis)).version}`
+                                                                ? `Version ${currentLog.find(l => l.analysisText === (localAnalysis || currentAnalysis)).version} `
                                                                 : 'Current Version'}
                                                         </span>
                                                         <span>
@@ -377,7 +439,7 @@ const AssessmentResultsView = ({ data }) => {
                                     {/* Primary Action: Review Material (Logic: Weak topics found? Review. Perfect score? Retake/Next) */}
                                     {subjectId && (
                                         <button
-                                            onClick={() => navigate(`/syllabus/subjects/${subjectId}`)}
+                                            onClick={() => navigate(`/ syllabus / subjects / ${subjectId} `)}
                                             className="w-full bg-white/10 border border-white/20 text-white py-3 rounded-xl font-bold text-sm hover:bg-white/20 transition-all flex items-center justify-center gap-2"
                                         >
                                             <BookOpen className="w-4 h-4" />
@@ -412,10 +474,76 @@ const AssessmentResultsView = ({ data }) => {
                             {/* Dashboard Link */}
                             <button
                                 onClick={() => navigate('/student/stats')}
-                                className="w-full bg-white border-2 border-slate-200 py-3 rounded-xl font-bold text-sm text-slate-700 hover:border-indigo-300 hover:text-indigo-700 transition-all"
+                                className="w-full bg-white border-2 border-slate-200 py-3 rounded-xl font-bold text-sm text-slate-700 hover:border-indigo-300 hover:text-indigo-700 transition-all mb-4"
                             >
                                 View Dashboard
                             </button>
+
+                            {/* AI Study Booster Widget */}
+                            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl shadow-indigo-200 relative overflow-hidden group">
+                                <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white">
+                                            <Zap className="w-5 h-5 fill-white" />
+                                        </div>
+                                        <h3 className="text-lg font-black text-white italic tracking-tight">AI STUDY BOOSTER</h3>
+                                    </div>
+
+                                    <p className="text-indigo-100 text-sm font-medium leading-relaxed mb-6">
+                                        Get notes specific to the topics you missed in this test.
+                                    </p>
+
+                                    {/* Check for existing note for this attempt */}
+                                    {notesData?.notes?.find(n => n.attemptId === attemptId) ? (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedNote(notesData.notes.find(n => n.attemptId === attemptId));
+                                                setIsNoteModalOpen(true);
+                                            }}
+                                            className="w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20 bg-white text-indigo-600 hover:scale-[1.02] active:scale-[0.98]"
+                                        >
+                                            <Sparkles className="w-4 h-4 fill-indigo-600" />
+                                            VIEW BOOST NOTES
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => generateNotes(attemptId)}
+                                            disabled={!canGenerate || isGenerating || results.weakTopics.length === 0}
+                                            className={`
+w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2
+shadow-lg shadow-indigo-900/20
+                                                ${(!canGenerate || results.weakTopics.length === 0)
+                                                    ? 'bg-indigo-400/30 text-indigo-200 cursor-not-allowed border border-white/5'
+                                                    : 'bg-white text-indigo-600 hover:scale-[1.02] active:scale-[0.98]'
+                                                }
+`}
+                                        >
+                                            {isGenerating ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ANALYZING...
+                                                </>
+                                            ) : !canGenerate ? (
+                                                <>LIMIT REACHED (2/2)</>
+                                            ) : results.weakTopics.length === 0 ? (
+                                                <>PERFECT SCORE! (0/2)</>
+                                            ) : (
+                                                <>GENERATE BOOST NOTES ({currentNotesCount}/2)</>
+                                            )}
+                                        </button>
+                                    )}
+
+                                    <p className="text-[9px] text-center text-indigo-300 font-bold uppercase tracking-tighter mt-4 opacity-60">
+                                        {!canGenerate
+                                            ? "Master these notes to improve your score!"
+                                            : results.weakTopics.length === 0
+                                                ? "No weak areas detected in this test."
+                                                : "Uses AI to pinpoint exactly what you missed."}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -452,6 +580,14 @@ const AssessmentResultsView = ({ data }) => {
                     </div>
                 </div>
             )}
+
+            {/* Note Display Modal */}
+            {isNoteModalOpen && (
+                <NoteModal
+                    note={selectedNote}
+                    onClose={() => setIsNoteModalOpen(false)}
+                />
+            )}
         </div>
     );
 };
@@ -465,6 +601,261 @@ const formatDate = (dateString) => {
         hour: '2-digit',
         minute: '2-digit'
     });
+};
+
+
+const NoteModal = ({ note, onClose }) => {
+    // Prevent background scroll when modal is open
+    useEffect(() => {
+        if (!note) return;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [note]);
+
+    if (!note) return null;
+
+    // Parse markdown sections from detailedContent
+    const parseMarkdown = (markdown) => {
+        if (!markdown) return {};
+
+        const sections = {};
+
+        // Extract "What You Got Wrong" section (NEW FORMAT)
+        let wrongMatch = markdown.match(/## 🔎 What You Got Wrong\s+([\s\S]*?)(?=\n##|$)/);
+        // Fallback to old format if new format not found
+        if (!wrongMatch) {
+            wrongMatch = markdown.match(/## 🧠 Why This Needs Attention\s+([\s\S]*?)(?=\n##|$)/);
+        }
+        sections.whatWrong = wrongMatch ? wrongMatch[1].trim() : '';
+
+        // Extract "Mistake Breakdown" section (NEW FORMAT)
+        let mistakesMatch = markdown.match(/## ❌ Mistake Breakdown\s+([\s\S]*?)(?=\n##|$)/);
+        // Fallback to old format
+        if (!mistakesMatch) {
+            mistakesMatch = markdown.match(/## ⚠️ Common Mistakes Identified\s+([\s\S]*?)(?=\n##|$)/);
+        }
+
+        if (mistakesMatch) {
+            const mistakesText = mistakesMatch[1];
+            sections.mistakes = [];
+
+            // Try parsing new format (### 1. Title)
+            const mistakeBlocks = mistakesText.split(/###\s+\d+\.\s+/).filter(Boolean);
+
+            if (mistakeBlocks.length > 0) {
+                // New format with sections
+                mistakeBlocks.forEach(block => {
+                    const titleMatch = block.match(/^(.+?)\n/);
+                    const whyWrongMatch = block.match(/\*\*Why it's wrong:\*\*\s+([\s\S]*?)(?=\*\*Correct Understanding:|$)/);
+                    const correctMatch = block.match(/\*\*Correct Understanding:\*\*\s+([\s\S]*?)(?=``` |### | $)/);
+                    const codeMatch = block.match(/```[\w]*\n([\s\S]*?)```/);
+
+                    if (titleMatch) {
+                        sections.mistakes.push({
+                            title: titleMatch[1].trim(),
+                            whyWrong: whyWrongMatch ? whyWrongMatch[1].trim() : '',
+                            correct: correctMatch ? correctMatch[1].trim() : '',
+                            code: codeMatch ? codeMatch[1].trim() : ''
+                        });
+                    }
+                });
+            } else {
+                // Old format or malformed format with bullet points
+                // Handle formats like "1. - Text" or "- Text"
+                const bulletPoints = mistakesText
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => {
+                        // Match "- text" or "1. - text" or "* text"
+                        return line.match(/^(\d+\.\s*)?[-*]\s+/);
+                    })
+                    .map(line => {
+                        // Remove "1. - " or "- " or "* " prefixes
+                        return line.replace(/^(\d+\.\s*)?[-*]\s+/, '').trim();
+                    })
+                    .filter(Boolean);
+
+                bulletPoints.forEach((point) => {
+                    sections.mistakes.push({
+                        title: point,
+                        whyWrong: '',
+                        correct: '',
+                        code: ''
+                    });
+                });
+            }
+        }
+
+        // Extract "Quick Mental Rules" (NEW FORMAT ONLY)
+        const rulesMatch = markdown.match(/## ⚡ Quick Mental Rules\s+([\s\S]*?)(?=\n##|$)/);
+        if (rulesMatch) {
+            sections.rules = rulesMatch[1]
+                .split('\n')
+                .filter(line => line.trim().startsWith('-') || line.trim().startsWith('✔'))
+                .map(line => line.replace(/^[-✔]\s*/, '').trim())
+                .filter(Boolean);
+        }
+
+        // Extract "Micro Practice" (NEW FORMAT ONLY)
+        const practiceMatch = markdown.match(/## 🧪 Micro Practice\s+([\s\S]*?)(?=\n##|$)/);
+        if (practiceMatch) {
+            const practiceText = practiceMatch[1];
+            const codeMatch = practiceText.match(/```[\w]*\n([\s\S]*?)```/);
+            const answerMatch = practiceText.match(/\*\*Answer:\*\*\s+(.+)/);
+
+            sections.practice = {
+                code: codeMatch ? codeMatch[1].trim() : '',
+                answer: answerMatch ? answerMatch[1].trim() : ''
+            };
+        }
+
+        // Extract "Immediate Fix Strategy" (NEW FORMAT ONLY)
+        const fixMatch = markdown.match(/## 🎯 Immediate Fix Strategy\s+([\s\S]*?)(?=\n##|$)/);
+        if (fixMatch) {
+            sections.fixSteps = fixMatch[1]
+                .split('\n')
+                .filter(line => line.trim().startsWith('-'))
+                .map(line => line.replace(/^-\s*/, '').trim())
+                .filter(Boolean);
+        }
+
+        return sections;
+    };
+
+    console.log(note.detailedContent)
+    const parsed = parseMarkdown(note.detailedContent);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div className="bg-slate-50 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-white">
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900">📘 Targeted Weak-Area Correction</h2>
+                        <p className="text-sm text-slate-500 font-medium mt-1">
+                            <strong>Focus:</strong> {note.topics?.join(', ') || 'General Topics'}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                        <ArrowRight className="w-5 h-5 rotate-180 text-slate-600" />
+                    </button>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="overflow-y-auto p-8 space-y-6" style={{ maxHeight: 'calc(90vh - 180px)' }}>
+                    {/* What You Got Wrong */}
+                    {parsed.whatWrong && (
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 mb-4">
+                                🔎 What You Got Wrong
+                            </h2>
+                            <p className="text-slate-700 leading-relaxed">{parsed.whatWrong}</p>
+                        </div>
+                    )}
+
+                    {/* Mistake Breakdown */}
+                    {parsed.mistakes && parsed.mistakes.length > 0 && (
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 mb-4">
+                                ❌ Mistake Breakdown
+                            </h2>
+                            <div className="space-y-6">
+                                {parsed.mistakes.map((mistake, idx) => (
+                                    <div key={idx}>
+                                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-3">
+                                            <h3 className="font-bold text-red-900 mb-2">{idx + 1}. {mistake.title}</h3>
+                                            <p className="text-sm text-red-800"><strong>Why it's wrong:</strong> {mistake.whyWrong}</p>
+                                        </div>
+                                        {mistake.correct && (
+                                            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                                                <p className="text-sm text-green-900 mb-2"><strong>Correct Understanding:</strong></p>
+                                                <p className="text-sm text-green-800">{mistake.correct}</p>
+                                                {mistake.code && (
+                                                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg mt-3 text-xs overflow-x-auto">
+                                                        <code>{mistake.code}</code>
+                                                    </pre>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quick Mental Rules */}
+                    {parsed.rules && parsed.rules.length > 0 && (
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 mb-4">
+                                ⚡ Quick Mental Rules
+                            </h2>
+                            <div className="flex flex-wrap gap-2">
+                                {parsed.rules.map((rule, idx) => (
+                                    <span
+                                        key={idx}
+                                        className="inline-block bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium"
+                                    >
+                                        ✔ {rule}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Micro Practice */}
+                    {parsed.practice && (parsed.practice.code || parsed.practice.answer) && (
+                        <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-2xl">
+                            <h2 className="text-lg font-bold text-slate-900 mb-4">🧪 Micro Practice</h2>
+                            {parsed.practice.code && (
+                                <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg mb-3 text-sm overflow-x-auto">
+                                    <code>{parsed.practice.code}</code>
+                                </pre>
+                            )}
+                            {parsed.practice.answer && (
+                                <p className="text-amber-900 font-medium">
+                                    <strong>Answer:</strong> {parsed.practice.answer}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Immediate Fix Strategy */}
+                    {parsed.fixSteps && parsed.fixSteps.length > 0 && (
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-indigo-600 pl-3 mb-4">
+                                🎯 Immediate Fix Strategy
+                            </h2>
+                            <ul className="space-y-2">
+                                {parsed.fixSteps.map((step, idx) => (
+                                    <li key={idx} className="flex items-start gap-3">
+                                        <span className="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                                            {idx + 1}
+                                        </span>
+                                        <span className="text-slate-700 leading-relaxed">{step}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-200 bg-white flex justify-between items-center">
+                    <div className="text-xs text-slate-500">
+                        Generated on {formatDate(note.createdAt)}
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                    >
+                        Got it, let's master this!
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default AssessmentResultsView;

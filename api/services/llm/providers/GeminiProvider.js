@@ -149,6 +149,82 @@ class GeminiProvider extends LLMProvider {
       return "Analysis pending. Please check back in a few minutes for your personalized performance insights.";
     }
   }
+
+  async generateStudyNotes(input) {
+    try {
+      const {
+        constructStudyNotesPrompt,
+      } = require("../prompts/studyNotesPrompt");
+      const { systemPrompt, userPrompt } = constructStudyNotesPrompt(input);
+
+      console.log(
+        `[GeminiProvider] Generating Study Notes for: ${input.topics.join(", ")}`,
+      );
+
+      const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+      const result = await this.model.generateContent(combinedPrompt);
+      const response = await result.response;
+      let text = response.text();
+
+      // Clean up potential markdown code blocks wrapping the output
+      text = text
+        .replace(/^```markdown\s*/, "")
+        .replace(/^```\s*/, "")
+        .replace(/```$/, "");
+
+      // PARSE MARKDOWN TO EXTRACT SCHEMA FIELDS
+      // 1. Extract Summary (from "What You Got Wrong")
+      let summary = "Remedial notes for weak areas.";
+      const summaryMatch = text.match(
+        /## 🔎 What You Got Wrong\s+([\s\S]*?)(?=\n\n---|\n\n##)/,
+      );
+      if (summaryMatch && summaryMatch[1]) {
+        summary = summaryMatch[1].trim();
+      }
+
+      // 2. Extract Key Points (from "Mistake Breakdown")
+      let keyPoints = ["Review the concepts below carefully."];
+      const mistakesMatch = text.match(
+        /## ❌ Mistake Breakdown\s+([\s\S]*?)(?=\n\n---|\n\n##)/,
+      );
+      if (mistakesMatch && mistakesMatch[1]) {
+        // Extract mistake titles from ### headings
+        const mistakeTitles = [];
+        const titleMatches = mistakesMatch[1].matchAll(
+          /###\s+\d+\.\s+(.+?)\n/g,
+        );
+        for (const match of titleMatches) {
+          mistakeTitles.push(match[1].trim());
+        }
+
+        if (mistakeTitles.length > 0) {
+          keyPoints = mistakeTitles;
+        }
+      }
+
+      // 3. Detailed Content is the full markdown
+      const detailedContent = text;
+
+      return {
+        summary,
+        keyPoints,
+        detailedContent,
+      };
+    } catch (error) {
+      console.error(
+        "[GeminiProvider] Study Notes generation failed:",
+        error.message,
+      );
+
+      if (isGeminiQuotaExceeded(error)) {
+        throw this.createQuotaError();
+      }
+
+      throw new Error(
+        "Failed to generate study notes. Please try again later.",
+      );
+    }
+  }
 }
 
 module.exports = GeminiProvider;

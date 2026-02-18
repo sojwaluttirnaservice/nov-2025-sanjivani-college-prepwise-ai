@@ -7,6 +7,7 @@ import PerformanceChart from '../../components/charts/PerformanceChart';
 import ActivityHeatmap from '../../components/charts/ActivityHeatmap';
 import StatCard from '../../components/dashboard/StatCard';
 
+
 const StudentDashboardView = () => {
     const [performanceRange, setPerformanceRange] = useState('30d');
 
@@ -28,26 +29,28 @@ const StudentDashboardView = () => {
         queryFn: studentService.getTopicMastery
     });
 
+    // AI Study Notes History
+    const { data: notesData } = useQuery({
+        queryKey: ['student-notes-history'],
+        queryFn: studentService.getNotesHistory
+    });
+
+    const [selectedNote, setSelectedNote] = useState(null);
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+
+
     // Debug logging
     React.useEffect(() => {
         console.log('[Dashboard] Raw API Responses:', {
             dashboardData,
             trendData,
             topicData,
+            notesData,
             errors: { statsError, trendsError, topicsError }
         });
-    }, [dashboardData, trendData, topicData, statsError, trendsError, topicsError]);
+    }, [dashboardData, trendData, topicData, notesData, statsError, trendsError, topicsError]);
 
     const isLoading = isLoadingStats || isLoadingTrends || isLoadingTopics;
-
-    // Use empty defaults when data is undefined or on error
-    const stats = dashboardData?.stats || {
-        currentStreak: 0,
-        averageScore: 0,
-        totalHoursStudy: 0,
-        totalAssessments: 0,
-        activityHeatmap: {}
-    };
 
     // Debug stats extraction
     React.useEffect(() => {
@@ -63,6 +66,15 @@ const StudentDashboardView = () => {
             </div>
         );
     }
+
+    // Use empty defaults when data is undefined or on error
+    const stats = dashboardData?.stats || {
+        currentStreak: 0,
+        averageScore: 0,
+        totalHoursStudy: 0,
+        totalAssessments: 0,
+        activityHeatmap: {}
+    };
 
 
     const statCards = [
@@ -91,7 +103,7 @@ const StudentDashboardView = () => {
             trend: null
         },
         {
-            title: 'assessments',
+            title: 'Assessments',
             value: stats?.totalAssessments || 0,
             unit: 'Tests',
             icon: CheckCircle,
@@ -99,6 +111,70 @@ const StudentDashboardView = () => {
             trend: null
         },
     ];
+
+    const currentNotes = notesData?.notes || [];
+
+    const NoteModal = ({ note, onClose }) => {
+        if (!note) return null;
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-600 text-white">
+                        <div>
+                            <h2 className="text-xl font-black italic tracking-tight">AI STUDY BOOSTER <span className="text-indigo-200">/</span> Ver {note.version}</h2>
+                            <p className="text-xs text-indigo-100 font-bold opacity-80 uppercase tracking-widest mt-0.5">Focus: {note.topics?.join(', ')}</p>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                            <ArrowRight className="w-5 h-5 rotate-180" />
+                        </button>
+                    </div>
+                    <div className="p-8 overflow-y-auto space-y-8">
+                        <div>
+                            <h3 className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Zap className="w-3.5 h-3.5 fill-indigo-600" /> Executive Summary
+                            </h3>
+                            <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100/50 italic text-slate-700 leading-relaxed">
+                                "{note.summary}"
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-xs font-black text-rose-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <TrendingUp className="w-3.5 h-3.5" /> High-Impact Key Points
+                            </h3>
+                            <div className="grid grid-cols-1 gap-3">
+                                {note.keyPoints?.map((point, i) => (
+                                    <div key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-all">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:text-indigo-600">
+                                            {i + 1}
+                                        </div>
+                                        <p className="text-sm text-slate-700 font-medium group-hover:text-slate-900 leading-snug">{point}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <BookOpen className="w-3.5 h-3.5" /> Topic Deep Dive
+                            </h3>
+                            <div className="text-sm text-slate-600 prose prose-slate max-w-none whitespace-pre-wrap leading-relaxed font-medium">
+                                {note.detailedContent}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+                        <button
+                            onClick={onClose}
+                            className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                        >
+                            Got it, let's master this!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="py-8 bg-slate-50/50 min-h-screen">
@@ -176,7 +252,7 @@ const StudentDashboardView = () => {
                     {/* Sidebar Column */}
                     <div className="space-y-6">
                         {/* Weak Areas */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm h-full">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div className="flex items-center gap-2 mb-6">
                                 <div className="p-2 bg-rose-50 rounded-lg text-rose-600">
                                     <AlertTriangle className="w-5 h-5" />
@@ -186,7 +262,7 @@ const StudentDashboardView = () => {
 
                             {topicData?.topics?.length > 0 ? (
                                 <div className="space-y-4">
-                                    {topicData.topics.map((topic, idx) => (
+                                    {topicData.topics.slice(0, 5).map((topic, idx) => (
                                         <div key={idx} className="group cursor-pointer">
                                             <div className="flex justify-between items-end mb-1">
                                                 <span className="text-sm font-bold text-slate-600 group-hover:text-indigo-600 transition-colors">
@@ -204,9 +280,6 @@ const StudentDashboardView = () => {
                                             </div>
                                         </div>
                                     ))}
-                                    <button className="w-full mt-6 py-3 border border-slate-200 text-slate-500 text-xs font-bold rounded-xl hover:bg-slate-50 transition-colors uppercase tracking-wider">
-                                        View All Topics
-                                    </button>
                                 </div>
                             ) : (
                                 <div className="text-center py-10">
@@ -214,9 +287,74 @@ const StudentDashboardView = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* AI Study Booster Widget */}
+                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl shadow-indigo-200 relative overflow-hidden group">
+                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white">
+                                        <Zap className="w-5 h-5 fill-white" />
+                                    </div>
+                                    <h3 className="text-lg font-black text-white italic tracking-tight">BOOST VAULT</h3>
+                                </div>
+
+                                <p className="text-indigo-100 text-sm font-medium leading-relaxed mb-6">
+                                    Master your weak areas with targeted AI boosts. Take tests to unlock more!
+                                </p>
+
+                                <div className="space-y-3">
+                                    {currentNotes.length > 0 ? (
+                                        currentNotes.map((note) => (
+                                            <button
+                                                key={note._id}
+                                                onClick={() => {
+                                                    setSelectedNote(note);
+                                                    setIsNoteModalOpen(true);
+                                                }}
+                                                className="w-full bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl flex items-center justify-between group/item hover:bg-white/20 transition-all"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-black text-white border border-white/10">
+                                                        V{note.version}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="text-[10px] text-indigo-200 font-bold uppercase tracking-tight">Boost {note.version}</div>
+                                                        <div className="text-xs font-bold text-white truncate max-w-[120px]">
+                                                            {note.topics?.join(', ')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 text-white group-hover/item:translate-x-1 transition-transform" />
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-6 bg-white/5 border border-dashed border-white/10 rounded-2xl">
+                                            <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest">No Boosts Unlocked</p>
+                                            <p className="text-[10px] text-indigo-300 mt-1">Complete assessments to generate boosts.</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <p className="text-[9px] text-center text-indigo-300 font-bold uppercase tracking-tighter mt-4 opacity-60">
+                                    {currentNotes.length < 2
+                                        ? `UNLOCKED: ${currentNotes.length}/2 BOOSTS`
+                                        : "ALL BOOSTS UNLOCKED!"}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Container>
+
+            {/* Note Display Modal */}
+            {isNoteModalOpen && (
+                <NoteModal
+                    note={selectedNote}
+                    onClose={() => setIsNoteModalOpen(false)}
+                />
+            )}
         </div>
     );
 };

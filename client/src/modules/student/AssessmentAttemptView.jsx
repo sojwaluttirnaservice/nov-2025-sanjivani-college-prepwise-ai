@@ -112,7 +112,8 @@ const AssessmentAttemptView = () => {
                     results: data.data || data, // Handle wrapped/unwrapped
                     unitId,
                     unitTitle: stateTitle || 'Unit Assessment'
-                }
+                },
+                replace: true
             });
         },
         onError: (err) => {

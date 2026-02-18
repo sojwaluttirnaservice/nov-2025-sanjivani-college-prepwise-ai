@@ -91,6 +91,20 @@ export const studentService = {
     return response.data; // Returns { topics: [...] }
   },
 
+  getNotesHistory: async () => {
+    const response = await instance.get("/analytics/notes");
+    return response.data; // Returns { notes: [...], totalGenerated: X }
+  },
+
+  generateStudyNotes: async (attemptId) => {
+    const response = await instance.post(
+      "/analytics/notes/generate",
+      { attemptId },
+      { timeout: 60000 }, // 60 seconds for LLM processing
+    );
+    return response.data; // Returns { note: {...} }
+  },
+
   getSubjects: async () => {
     return new Promise((resolve) => {
       setTimeout(() => resolve(MOCK_SUBJECTS), 500);

@@ -34,6 +34,16 @@ class LLMProvider {
   }
 
   /**
+   * Generates study notes for weak topics.
+   *
+   * @param {Object} input - { topics: [string] }
+   * @returns {Promise<Object>} { summary, keyPoints, detailedContent }
+   */
+  async generateStudyNotes(input) {
+    throw new Error("generateStudyNotes() must be implemented by provider");
+  }
+
+  /**
    * Helper to validate that the output JSON matches the required Question schema structure.
    * Throws detailed errors if validation fails.
    */

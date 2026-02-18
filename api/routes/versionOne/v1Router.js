@@ -18,6 +18,11 @@ analyticsRouter.get("/dashboard", analyticsController.getDashboardStats);
 analyticsRouter.get("/performance", analyticsController.getPerformanceTrends);
 analyticsRouter.get("/topics", analyticsController.getTopicMastery);
 
+// Study Notes Routes
+const notesController = require("../../controllers/v1/student.notes.controller");
+analyticsRouter.get("/notes", notesController.getNotesHistory);
+analyticsRouter.post("/notes/generate", notesController.generateNotes);
+
 v1Router.use("/analytics", analyticsRouter);
 
 module.exports = v1Router;
