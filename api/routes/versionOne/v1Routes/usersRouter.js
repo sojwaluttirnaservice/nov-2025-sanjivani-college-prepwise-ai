@@ -5,6 +5,8 @@ const getRouter = require("../../../utils/getRouter");
 
 const usersRouter = getRouter();
 
+usersRouter.get("/", isAuthenticated, usersController.getUsers);
+usersRouter.get("/:id", isAuthenticated, usersController.getUserById);
 usersRouter.post("/", usersController.createUser);
 
 usersRouter.post("/login", usersController.login);

@@ -2,6 +2,7 @@ const seedBranches = require("./seedBranches");
 const seedSubjects = require("./seedSubjects");
 const seedTopics = require("./seedTopics");
 const seedUnits = require("./seedUnits");
+const seedAdmin = require("./seedAdmin");
 
 async function runSeeds() {
   try {
@@ -11,6 +12,7 @@ async function runSeeds() {
     await seedSubjects();
     await seedUnits();
     await seedTopics();
+    await seedAdmin();
 
     console.log("\n✅ All seeds completed");
   } catch (err) {

@@ -1,4 +1,5 @@
 const usersModel = require("../../models/users.model");
+const Branch = require("../../schemas/Branch");
 const { sendSuccess, sendError } = require("../../utils/responses/ApiResponse");
 const STATUS = require("../../utils/status");
 const asyncHandler = require("../../utils/asyncHandler");
@@ -148,12 +149,14 @@ const usersController = {
       !updates.branchId &&
       !Object.prototype.hasOwnProperty.call(updates, "semester")
     ) {
-      throw new AppError("No valid fields provided to update", STATUS.BAD_REQUEST);
+      throw new AppError(
+        "No valid fields provided to update",
+        STATUS.BAD_REQUEST,
+      );
     }
 
     const nextBranchId = updates.branchId ?? existingUser.branchId;
-    const nextSemester =
-      updates.semester ?? existingUser.semester;
+    const nextSemester = updates.semester ?? existingUser.semester;
     const nextYear = updates.year ?? existingUser.year;
 
     if (existingUser.role === "STUDENT") {
@@ -171,6 +174,108 @@ const usersController = {
     }
 
     return sendSuccess(res, STATUS.OK, "User profile updated", user);
+  }),
+
+  /**
+   * =========================
+   * GET ALL STUDENTS (ADMIN)
+   * =========================
+   */
+  getUsers: asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const { branch, year, semester, search, role } = req.query;
+
+    // Base query
+    const query = {};
+
+    // Filter by Role (Default to STUDENT if not specified, or allow filtering)
+    if (role) {
+      query.role = role;
+    } else {
+      query.role = "STUDENT"; // Default to students for this view
+    }
+
+    // Filter by Branch
+    if (branch) {
+      // If branch is ObjectID
+      if (branch.match(/^[0-9a-fA-F]{24}$/)) {
+        query.branchId = branch;
+      } else {
+        // Look up branch by name
+        const branchDoc = await Branch.findOne({
+          name: { $regex: new RegExp(`^${branch}$`, "i") },
+        });
+        if (branchDoc) {
+          query.branchId = branchDoc._id;
+        } else {
+          // If branch name provided but not found, ensure no results are returned for that filter
+          // return empty list
+          return sendSuccess(res, STATUS.OK, "Users retrieved successfully", {
+            users: [],
+            pagination: {
+              total: 0,
+              page,
+              limit,
+              pages: 0,
+            },
+          });
+        }
+      }
+    }
+
+    // Filter by Year/Semester
+    if (year) query.year = year;
+    if (semester) query.semester = semester;
+
+    // Search by Name or Email
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Execute Query
+    const total = await usersModel.Model.countDocuments(query);
+    const users = await usersModel.Model.find(query)
+      .select("-password") // Exclude password
+      .populate("branchId", "name") // Populate branch name
+      .sort({ createdAt: -1 }) // Newest first
+      .skip(skip)
+      .limit(limit);
+
+    return sendSuccess(res, STATUS.OK, "Users retrieved successfully", {
+      users,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  }),
+
+  /**
+   * =========================
+   * GET USER BY ID (ADMIN)
+   * =========================
+   */
+  getUserById: asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const user = await usersModel
+      .getUserById(id)
+      .select("-password")
+      .populate("branchId", "name");
+
+    if (!user) {
+      throw new AppError("User not found", STATUS.NOT_FOUND);
+    }
+
+    return sendSuccess(res, STATUS.OK, "User retrieved successfully", user);
   }),
 };
 

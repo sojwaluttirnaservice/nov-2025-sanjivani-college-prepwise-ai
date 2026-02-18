@@ -27,6 +27,9 @@ import AssessmentResultDetailPage from './pages/student/AssessmentResultDetailPa
 import StudentProfilePage from './pages/student/StudentProfilePage'
 import PageNotFound from './pages/outer/PageNotFound'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminLoginPage from './pages/admin/AdminLoginPage'
+import StudentListView from './modules/admin/StudentListView'
+import StudentDetailView from './modules/admin/StudentDetailView'
 
 const App = () => {
     return (
@@ -65,11 +68,15 @@ const App = () => {
                     </Route>
                 </Route>
 
+                {/* ADMIN LOGIN (public, standalone) */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+
                 {/* AUTHENTICATED ADMIN ROUTES */}
                 <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
                     <Route element={<AdminLayout />}>
                         <Route path="/admin" element={<AdminDashboard />} />
-                        <Route path="/admin/students" element={<div>Student Management</div>} />
+                        <Route path="/admin/students" element={<StudentListView />} />
+                        <Route path="/admin/students/:id" element={<StudentDetailView />} />
                         <Route path="/admin/activity" element={<div>Activity Logs</div>} />
                         <Route path="/admin/assessments" element={<div>Question Bank</div>} />
                     </Route>
