@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { setCredentials } from '../../redux/slices/authSlice';
+import { setCredentials, selectCurrentUser } from '../../redux/slices/authSlice';
 import { authService } from '../../services/authService';
 
 const loginSchema = yup.object().shape({
@@ -19,6 +19,14 @@ const AdminLoginView = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
+    const user = useSelector(selectCurrentUser);
+
+    useEffect(() => {
+        if (user && user.role === 'ADMIN') {
+            navigate('/admin', { replace: true });
+        }
+    }, [user, navigate]);
+
     const { register, handleSubmit, formState: { errors } } = useForm({
         resolver: yupResolver(loginSchema),
     });
@@ -31,6 +39,7 @@ const AdminLoginView = () => {
                 return;
             }
             dispatch(setCredentials(data));
+            // Navigate handles in useEffect or here, but better to let state update trigger it or direct nav
             navigate('/admin');
         },
         onError: (error) => {

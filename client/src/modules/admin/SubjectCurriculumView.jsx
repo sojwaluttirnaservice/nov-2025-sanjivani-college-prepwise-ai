@@ -191,7 +191,7 @@ const SubjectCurriculumView = () => {
 
     if (isLoadingSubject) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
             </div>
         );
@@ -199,7 +199,7 @@ const SubjectCurriculumView = () => {
 
     if (!subject) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-500">
+            <div className="min-h-screen flex flex-col items-center justify-center text-slate-500">
                 <h2 className="text-xl font-bold mb-2">Subject Not Found</h2>
                 <button onClick={() => navigate('/admin/academics')} className="text-indigo-600 hover:underline">Go Back</button>
             </div>
@@ -207,7 +207,7 @@ const SubjectCurriculumView = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20 animate-fadeIn">
+        <div className="min-h-screen pb-20 animate-fadeIn">
             <Container>
                 {/* Header / Breadcrumb */}
                 <div className="pt-8 pb-6">

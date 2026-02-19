@@ -109,28 +109,28 @@ const adminController = {
     return sendSuccess(res, STATUS.OK, "Dashboard stats retrieved", {
       stats: [
         {
-          label: "Total Students",
+          title: "Total Students",
           value: totalStudents.toLocaleString(),
           icon: "Users",
           color: "text-indigo-600",
           bg: "bg-indigo-50",
         },
         {
-          label: "Tests Attempted",
+          title: "Tests Attempted",
           value: totalAttempts.toLocaleString(),
           icon: "ClipboardCheck",
           color: "text-emerald-600",
           bg: "bg-emerald-50",
         },
         {
-          label: "Avg Test Time",
+          title: "Avg Test Time",
           value: avgStudyTime,
           icon: "TrendingUp",
           color: "text-blue-600",
           bg: "bg-blue-50",
         },
         {
-          label: "Active Issues",
+          title: "Active Issues",
           value: activeIssues.toString(),
           icon: "AlertCircle",
           color: "text-amber-600",
