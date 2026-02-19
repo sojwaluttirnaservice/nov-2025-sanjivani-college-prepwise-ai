@@ -154,7 +154,7 @@ const AssessmentResultsView = ({ data }) => {
                 <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
                     {/* Compact Hero Header */}
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 md:px-8 py-6 md:py-8">
+                        <div className="bg-linear-to-r from-indigo-600 to-purple-600 px-4 md:px-8 py-6 md:py-8">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
@@ -184,7 +184,7 @@ const AssessmentResultsView = ({ data }) => {
                         <div className="lg:col-span-2 space-y-4 md:space-y-6">
                             {/* AI Analysis Compact */}
                             {(currentAnalysis || currentAttempts < 2) && (
-                                <div className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl border border-indigo-200/50 shadow-sm relative overflow-hidden flex flex-col">
+                                <div className="bg-linear-to-br from-white to-indigo-50/30 rounded-2xl border border-indigo-200/50 shadow-sm relative overflow-hidden flex flex-col">
                                     {currentAttempts >= 2 && (
                                         <div className="absolute top-0 right-0 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-bl-lg border-b border-l border-indigo-200 z-10">
                                             Max Analysis Limit Reached
@@ -222,7 +222,7 @@ const AssessmentResultsView = ({ data }) => {
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="p-1.5 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg shadow-sm">
+                                                    <div className="p-1.5 bg-linear-to-br from-indigo-100 to-purple-100 rounded-lg shadow-sm">
                                                         <Sparkles className="w-4 h-4 text-indigo-600" />
                                                     </div>
                                                     <h3 className="text-base font-bold text-gray-900">AI Performance Analysis</h3>
@@ -284,7 +284,7 @@ const AssessmentResultsView = ({ data }) => {
 
                             {/* Knowledge Gaps Compact */}
                             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="bg-gradient-to-r from-red-50 to-orange-50/50 border-b border-red-100 px-4 md:px-6 py-3 md:py-4">
+                                <div className="bg-linear-to-r from-red-50 to-orange-50/50 border-b border-red-100 px-4 md:px-6 py-3 md:py-4">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle className="w-5 h-5 text-red-600" />
                                         <h3 className="text-base md:text-lg font-bold text-gray-900">Areas for Improvement</h3>
@@ -312,7 +312,7 @@ const AssessmentResultsView = ({ data }) => {
                             {/* Question Review - Accordion Style with Smooth Animation */}
                             {results.answers && results.answers.length > 0 && (
                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-slate-200 px-4 md:px-6 py-3 md:py-4">
+                                    <div className="bg-linear-to-r from-slate-50 to-gray-50 border-b border-slate-200 px-4 md:px-6 py-3 md:py-4">
                                         <h3 className="text-base md:text-lg font-bold text-gray-900">Question Review</h3>
                                     </div>
                                     <div className="divide-y divide-slate-100">
@@ -374,7 +374,7 @@ const AssessmentResultsView = ({ data }) => {
                                                                 </div>
                                                             </div>
                                                             {question.explanation && (
-                                                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                                                                <div className="bg-linear-to-r from-blue-50 to-indigo-50/50 border border-blue-200 rounded-lg p-3 shadow-sm">
                                                                     <div className="text-xs font-bold text-blue-900 mb-1">💡 Explanation</div>
                                                                     <p className="text-sm text-blue-800 leading-relaxed">{question.explanation}</p>
                                                                 </div>
@@ -420,7 +420,7 @@ const AssessmentResultsView = ({ data }) => {
                             </div>
 
                             {/* Actions Card */}
-                            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-lg p-5 text-white">
+                            <div className="bg-linear-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-lg p-5 text-white">
                                 <div className="mb-4">
                                     <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
                                         <TrendingUp className="w-5 h-5" />
@@ -443,14 +443,14 @@ const AssessmentResultsView = ({ data }) => {
                                         </button>
                                     )}
 
-                                    {/* Secondary Action: Retake (if unitId available) */}
+                                    {/* Secondary Action: Improve Score (if unitId available) */}
                                     {unitId && (
                                         <button
                                             onClick={() => setShowRetakeModal(true)}
                                             className="w-full bg-white text-indigo-700 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
                                         >
-                                            <span>Retake Assessment</span>
-                                            <RefreshCw className="w-4 h-4" />
+                                            <span>Improve Score</span>
+                                            <TrendingUp className="w-4 h-4" />
                                         </button>
                                     )}
 
@@ -476,7 +476,7 @@ const AssessmentResultsView = ({ data }) => {
                             </button>
 
                             {/* AI Study Booster Widget */}
-                            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl shadow-indigo-200 relative overflow-hidden group">
+                            <div className="bg-linear-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl shadow-indigo-200 relative overflow-hidden group">
                                 <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
 
                                 <div className="relative z-10">
@@ -551,11 +551,11 @@ shadow-lg shadow-indigo-900/20
                     <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-white/20">
                         <div className="text-center">
                             <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <RefreshCw className="w-8 h-8 text-indigo-600" />
+                                <TrendingUp className="w-8 h-8 text-indigo-600" />
                             </div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-2">Retake Assessment?</h3>
+                            <h3 className="text-2xl font-black text-gray-900 mb-2">Improve Your Score?</h3>
                             <p className="text-slate-500 font-medium mb-8">
-                                You are about to start a new attempt for <span className="text-indigo-600 font-bold">{unitTitle || 'this unit'}</span>. This will be recorded as a new attempt in your history.
+                                You are about to start a new adaptive practice session for <span className="text-indigo-600 font-bold">{unitTitle || 'this unit'}</span>. This will help target your weak areas.
                             </p>
 
                             <div className="flex gap-4">
@@ -569,7 +569,7 @@ shadow-lg shadow-indigo-900/20
                                     onClick={() => navigate('/assessment/attempt', { state: { unitId, unitTitle } })}
                                     className="flex-1 py-4 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2"
                                 >
-                                    Start Attempt
+                                    Start Practice
                                 </button>
                             </div>
                         </div>
@@ -826,7 +826,7 @@ const NoteModal = ({ note, onClose }) => {
                             <ul className="space-y-2">
                                 {parsed.fixSteps.map((step, idx) => (
                                     <li key={idx} className="flex items-start gap-3">
-                                        <span className="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                                        <span className="shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                                             {idx + 1}
                                         </span>
                                         <span className="text-slate-700 leading-relaxed">{step}</span>

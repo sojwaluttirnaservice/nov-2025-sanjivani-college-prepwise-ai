@@ -31,7 +31,7 @@ const AdminLayout = () => {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     return (
-        <div className="flex bg-slate-50 min-h-screen">
+        <div className="flex bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-100/40 via-slate-50 to-slate-100 min-h-screen">
             <Sidebar
                 roleName="ADMIN"
                 links={adminLinks}
