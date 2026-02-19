@@ -37,7 +37,7 @@ const HomePage = () => {
                         </h1>
 
                         <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto">
-                            Personalized assessments, weak area analysis, and curriculum-mapped questions designed for Sanjivani engineering students.
+                            Personalized assessments, weak area analysis, and curriculum-mapped questions designed for engineering students.
                         </p>
 
                         <div className="flex flex-col sm:flex-row justify-center gap-4">

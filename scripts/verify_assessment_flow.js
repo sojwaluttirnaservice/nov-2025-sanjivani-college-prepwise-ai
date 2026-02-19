@@ -13,7 +13,7 @@ const MONGO_URI =
 
 // Mocks
 const MOCK_USER = {
-  email: "student@sanjivani.edu.in",
+  email: "student@college.edu.in",
   password: "password123",
 };
 

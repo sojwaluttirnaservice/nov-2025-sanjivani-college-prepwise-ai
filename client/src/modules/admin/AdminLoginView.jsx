@@ -107,7 +107,7 @@ const AdminLoginView = () => {
                                     type="email"
                                     id="admin-email"
                                     autoComplete="off"
-                                    placeholder="admin@sanjivani.edu.in"
+                                    placeholder="admin@college.edu.in"
                                     style={{
                                         ...styles.input,
                                         ...(errors.email ? styles.inputError : {}),
@@ -195,7 +195,7 @@ const AdminLoginView = () => {
                     <div style={styles.footer}>
                         <div style={styles.divider}>
                             <span style={styles.dividerLine} />
-                            <span style={styles.dividerText}>Sanjivani College of Engineering</span>
+                            <span style={styles.dividerText}>College PrepWise AI</span>
                             <span style={styles.dividerLine} />
                         </div>
                         <p style={styles.footerNote}>
