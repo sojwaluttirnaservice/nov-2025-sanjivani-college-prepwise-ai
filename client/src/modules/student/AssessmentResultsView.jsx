@@ -8,6 +8,7 @@ import { studentService } from '../../services/studentService';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import message from '../../utils/message';
 import { handleError } from '../../utils/errorHandler';
+import { logger } from '../../utils/logger';
 
 const AssessmentResultsView = ({ data }) => {
     const location = useLocation();
@@ -111,7 +112,7 @@ const AssessmentResultsView = ({ data }) => {
 
             message.success('Analysis updated successfully');
         } catch (error) {
-            console.error(error);
+            logger.devError(error);
 
             // Handle limit reached (403 Forbidden)
             if (error?.response?.status === 403) {
@@ -720,7 +721,7 @@ const NoteModal = ({ note, onClose }) => {
         return sections;
     };
 
-    console.log(note.detailedContent)
+    logger.log(note.detailedContent);
     const parsed = parseMarkdown(note.detailedContent);
 
     return (

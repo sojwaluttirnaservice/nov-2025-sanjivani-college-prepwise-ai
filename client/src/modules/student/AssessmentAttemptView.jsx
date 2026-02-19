@@ -6,6 +6,7 @@ import Container from '../../components/utils/Container';
 import message from '../../utils/message';
 import { useEffect, useState, useRef } from 'react';
 import { handleError } from '../../utils/errorHandler';
+import { logger } from '../../utils/logger';
 
 const AssessmentAttemptView = () => {
     const location = useLocation();
@@ -70,11 +71,11 @@ const AssessmentAttemptView = () => {
             if (currentTime > 0) {
                 try {
                     await assessmentService.updateTimeSpent(attemptId, currentTime);
-                    console.log(`✅ [Timer] Saved: ${currentTime}s`);
+                    logger.log(`✅ [Timer] Saved: ${currentTime}s`);
                 } catch (err) {
                     // Ignore errors if we are actually submitting now
                     if (!isSubmittingRef.current) {
-                        console.error('❌ [Timer] Save failed:', err);
+                        logger.devError('❌ [Timer] Save failed:', err);
                     }
                 }
             }

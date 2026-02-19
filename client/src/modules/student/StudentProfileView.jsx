@@ -12,6 +12,7 @@ import { studentService } from '../../services/studentService';
 import message from '../../utils/message';
 import Container from '../../components/utils/Container';
 import { extractErrorMessage } from '../../utils/errorHandler';
+import { logger } from '../../utils/logger';
 
 
 const profileSchema = yup.object().shape({
@@ -103,7 +104,7 @@ const StudentProfileView = () => {
             // Safe bet: updatedUser might be the data payload. 
             // Wait, I should check authService first to be sure.
             // BUT, for now I will use a fallback pattern.
-            console.log('[DEBUG] Profile update success. Received:', response);
+            logger.debug('[DEBUG] Profile update success. Received:', response);
             // If response has message, use it.
             const msg = response?.message || 'Profile updated successfully';
             const userPayload = response?.data || response; // Handle wrapped or unwrapped
@@ -114,7 +115,7 @@ const StudentProfileView = () => {
             setIsEditing(false);
         },
         onError: (error) => {
-            console.error('[DEBUG] Profile update error:', error);
+            logger.devError('[DEBUG] Profile update error:', error);
             message.error(extractErrorMessage(error || 'Failed to update profile'));
         }
     });
@@ -201,7 +202,7 @@ const StudentProfileView = () => {
                     {/* Academic Information */}
                     <div className="lg:col-span-7 space-y-8">
                         {isEditing && (
-                            <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-slate-100">
+                            <div className="bg-white rounded-4xl p-10 shadow-sm border border-slate-100">
                                 <div className="flex items-center justify-between mb-8">
                                     <h2 className="text-2xl font-black text-gray-900 flex items-center gap-4">
                                         <Settings className="w-7 h-7 text-slate-900" />
@@ -304,7 +305,7 @@ const StudentProfileView = () => {
                             </div>
                         )}
 
-                        <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-slate-100 h-full">
+                        <div className="bg-white rounded-4xl p-10 shadow-sm border border-slate-100 h-full">
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-2xl font-black text-gray-900 flex items-center gap-4">
                                     <GraduationCap className="w-8 h-8 text-indigo-600" />
@@ -331,7 +332,7 @@ const StudentProfileView = () => {
 
                     {/* Quick Stats & Performance */}
                     <div className="lg:col-span-5 space-y-10">
-                        <div className="bg-slate-900 rounded-[2rem] p-10 shadow-xl shadow-indigo-100/20 text-white h-full relative overflow-hidden">
+                        <div className="bg-slate-900 rounded-4xl p-10 shadow-xl shadow-indigo-100/20 text-white h-full relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full -mr-24 -mt-24 blur-3xl"></div>
                             <h2 className="text-xl font-black mb-8 relative z-10 uppercase tracking-widest text-indigo-300">Performance Snapshot</h2>
 

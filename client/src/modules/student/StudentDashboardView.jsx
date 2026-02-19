@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logger } from '../../utils/logger';
 import { BookOpen, CheckCircle, Clock, AlertTriangle, ArrowRight, Loader2, TrendingUp, Calendar, Zap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { studentService } from '../../services/studentService';
@@ -72,7 +73,7 @@ const StudentDashboardView = ({ studentId }) => {
 
     // Debug logging
     React.useEffect(() => {
-        console.log('[Dashboard] Raw API Responses:', {
+        logger.log('[Dashboard] Raw API Responses:', {
             dashboardData,
             trendData,
             topicData,
@@ -86,7 +87,7 @@ const StudentDashboardView = ({ studentId }) => {
     // Debug stats extraction
     React.useEffect(() => {
         if (statsError || trendsError || topicsError) {
-            console.error('[Dashboard] API Errors:', { statsError, trendsError, topicsError });
+            logger.devError('[Dashboard] API Errors:', { statsError, trendsError, topicsError });
         }
     }, [statsError, trendsError, topicsError]);
 

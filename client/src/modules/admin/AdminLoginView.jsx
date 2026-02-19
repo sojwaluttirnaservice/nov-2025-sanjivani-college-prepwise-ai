@@ -5,12 +5,14 @@ import * as yup from 'yup';
 import { useMutation } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2 } from 'lucide-react';
 import { setCredentials, selectCurrentUser } from '../../redux/slices/authSlice';
 import { authService } from '../../services/authService';
+import { extractErrorMessage } from '../../utils/errorHandler';
 
 const loginSchema = yup.object().shape({
-    email: yup.string().email('Enter a valid email').required('Email is required'),
-    password: yup.string().required('Password is required').min(5, 'Password too short'),
+    email: yup.string().email('Enter a valid email').required('Email is required').max(100, "Email cannot be more than 100 characters").min(5, "Email cannot be less than 5 characters"),
+    password: yup.string().required('Password is required').min(5, 'Password too short').max(100, "Password cannot be more than 100 characters"),
 });
 
 const AdminLoginView = () => {
@@ -39,11 +41,10 @@ const AdminLoginView = () => {
                 return;
             }
             dispatch(setCredentials(data));
-            // Navigate handles in useEffect or here, but better to let state update trigger it or direct nav
             navigate('/admin');
         },
         onError: (error) => {
-            setErrorMsg(error.response?.data?.message || 'Invalid credentials. Please try again.');
+            setErrorMsg(extractErrorMessage(error, 'Invalid credentials. Please try again.'));
         },
     });
 
@@ -53,54 +54,53 @@ const AdminLoginView = () => {
     };
 
     return (
-        <div style={styles.page}>
+        <div
+            className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden font-inter bg-linear-to-br from-slate-950 via-slate-900 to-indigo-950"
+        >
             {/* Animated background blobs */}
-            <div style={styles.blob1} />
-            <div style={styles.blob2} />
-            <div style={styles.blob3} />
+            <div
+                className="absolute -top-[100px] -left-[100px] w-[400px] h-[400px] rounded-full pointer-events-none bg-indigo-500/25 blur-[80px] animate-pulse"
+            />
+            <div
+                className="absolute -bottom-[80px] -right-[80px] w-[350px] h-[350px] rounded-full pointer-events-none bg-violet-500/20 blur-[80px] animate-pulse delay-700"
+            />
+            <div
+                className="absolute top-1/2 left-[60%] w-[300px] h-[300px] rounded-full pointer-events-none bg-blue-500/15 blur-[80px] animate-pulse delay-1000"
+            />
 
-            <div style={styles.container}>
+            <div className="w-full max-w-[440px] relative z-10 animate-[fadeIn_0.5s_ease-out]">
                 {/* Logo / Brand */}
-                <div style={styles.brand}>
-                    <div style={styles.logoRing}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
+                <div className="flex items-center justify-center gap-3.5 mb-7">
+                    <div className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-[0_8px_32px_rgba(99,102,241,0.4)] bg-linear-to-br from-indigo-500 to-violet-500">
+                        <ShieldCheck className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                        <h1 style={styles.brandName}>PrepWise AI</h1>
-                        <p style={styles.brandSub}>Admin Control Panel</p>
+                        <h1 className="text-white text-[22px] font-bold m-0 tracking-[-0.3px]">PrepWise AI</h1>
+                        <p className="text-white/45 text-xs font-medium m-0 tracking-[0.5px] uppercase">Admin Control Panel</p>
                     </div>
                 </div>
 
                 {/* Card */}
-                <div style={styles.card}>
-                    <div style={styles.cardHeader}>
-                        <h2 style={styles.cardTitle}>Administrator Sign In</h2>
-                        <p style={styles.cardSubtitle}>Restricted access — authorized personnel only</p>
+                <div className="backdrop-blur-[20px] bg-white/5 border border-white/10 rounded-3xl p-9 shadow-[0_25px_50px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <div className="mb-7">
+                        <h2 className="text-white text-[22px] font-bold m-0 mb-1.5 tracking-[-0.3px]">Administrator Sign In</h2>
+                        <p className="text-white/45 text-[13px] m-0 font-normal">Restricted access — authorized personnel only</p>
                     </div>
 
                     {errorMsg && (
-                        <div style={styles.errorBanner}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="12" y1="8" x2="12" y2="12" />
-                                <line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
+                        <div className="flex items-center gap-2.5 bg-red-500/12 border border-red-500/30 rounded-lg p-3 text-red-300 text-[13px] mb-5 leading-[1.4]">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
                             <span>{errorMsg}</span>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
                         {/* Email */}
-                        <div style={styles.fieldGroup}>
-                            <label style={styles.label}>Admin Email</label>
-                            <div style={styles.inputWrapper}>
-                                <span style={styles.inputIcon}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                        <polyline points="22,6 12,13 2,6" />
-                                    </svg>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-white/70 text-[13px] font-medium tracking-[0.2px]">Admin Email</label>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35 flex items-center pointer-events-none">
+                                    <Mail className="w-4 h-4" />
                                 </span>
                                 <input
                                     {...register('email')}
@@ -108,26 +108,18 @@ const AdminLoginView = () => {
                                     id="admin-email"
                                     autoComplete="off"
                                     placeholder="admin@college.edu.in"
-                                    style={{
-                                        ...styles.input,
-                                        ...(errors.email ? styles.inputError : {}),
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = '#6366f1'}
-                                    onBlur={e => e.target.style.borderColor = errors.email ? '#ef4444' : 'rgba(255,255,255,0.12)'}
+                                    className={`w-full bg-white/6 border rounded-xl py-[13px] px-[14px] pl-[42px] text-white text-sm outline-none transition-all duration-200 font-inter focus:border-indigo-500 focus:bg-white/10 placeholder:text-white/20 ${errors.email ? 'border-red-500' : 'border-white/12'}`}
                                 />
                             </div>
-                            {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
+                            {errors.email && <p className="text-red-400 text-xs m-0 font-normal">{errors.email.message}</p>}
                         </div>
 
                         {/* Password */}
-                        <div style={styles.fieldGroup}>
-                            <label style={styles.label}>Password</label>
-                            <div style={styles.inputWrapper}>
-                                <span style={styles.inputIcon}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                    </svg>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-white/70 text-[13px] font-medium tracking-[0.2px]">Password</label>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35 flex items-center pointer-events-none">
+                                    <Lock className="w-4 h-4" />
                                 </span>
                                 <input
                                     {...register('password')}
@@ -135,56 +127,37 @@ const AdminLoginView = () => {
                                     id="admin-password"
                                     autoComplete="off"
                                     placeholder="••••••••"
-                                    style={{
-                                        ...styles.input,
-                                        paddingRight: '48px',
-                                        ...(errors.password ? styles.inputError : {}),
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = '#6366f1'}
-                                    onBlur={e => e.target.style.borderColor = errors.password ? '#ef4444' : 'rgba(255,255,255,0.12)'}
+                                    className={`w-full bg-white/6 border rounded-xl py-[13px] px-[14px] pl-[42px] pr-[48px] text-white text-sm outline-none transition-all duration-200 font-inter focus:border-indigo-500 focus:bg-white/10 placeholder:text-white/20 ${errors.password ? 'border-red-500' : 'border-white/12'}`}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(v => !v)}
-                                    style={styles.eyeBtn}
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-white/40 flex items-center p-1 hover:text-white transition-colors outline-none"
                                 >
                                     {showPassword ? (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                                            <line x1="1" y1="1" x2="23" y2="23" />
-                                        </svg>
+                                        <EyeOff className="w-4 h-4" />
                                     ) : (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                            <circle cx="12" cy="12" r="3" />
-                                        </svg>
+                                        <Eye className="w-4 h-4" />
                                     )}
                                 </button>
                             </div>
-                            {errors.password && <p style={styles.fieldError}>{errors.password.message}</p>}
+                            {errors.password && <p className="text-red-400 text-xs m-0 font-normal">{errors.password.message}</p>}
                         </div>
 
                         {/* Submit */}
                         <button
                             type="submit"
                             disabled={loginMutation.isPending}
-                            style={{
-                                ...styles.submitBtn,
-                                ...(loginMutation.isPending ? styles.submitBtnDisabled : {}),
-                            }}
+                            className="w-full bg-linear-to-br from-indigo-500 to-violet-500 border-none rounded-xl p-3.5 text-white text-sm font-semibold cursor-pointer transition-all shadow-lg shadow-indigo-500/40 tracking-[0.2px] mt-1 font-inter hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {loginMutation.isPending ? (
-                                <span style={styles.spinnerRow}>
-                                    <span style={styles.spinner} />
+                                <span className="flex items-center justify-center gap-2.5">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                     Authenticating...
                                 </span>
                             ) : (
-                                <span style={styles.btnRow}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                                        <polyline points="10 17 15 12 10 7" />
-                                        <line x1="15" y1="12" x2="3" y2="12" />
-                                    </svg>
+                                <span className="flex items-center justify-center gap-2">
+                                    <LogIn className="w-4 h-4" />
                                     Sign In to Admin Panel
                                 </span>
                             )}
@@ -192,35 +165,28 @@ const AdminLoginView = () => {
                     </form>
 
                     {/* Footer */}
-                    <div style={styles.footer}>
-                        <div style={styles.divider}>
-                            <span style={styles.dividerLine} />
-                            <span style={styles.dividerText}>College PrepWise AI</span>
-                            <span style={styles.dividerLine} />
+                    <div className="mt-7">
+                        <div className="flex items-center gap-2.5 mb-4">
+                            <span className="flex-1 h-px bg-white/10" />
+                            <span className="text-white/30 text-[11px] font-medium whitespace-nowrap tracking-[0.3px]">College PrepWise AI</span>
+                            <span className="flex-1 h-px bg-white/10" />
                         </div>
-                        <p style={styles.footerNote}>
+                        <p className="text-center text-white/35 text-[13px] m-0">
                             Student? &nbsp;
-                            <a href="/auth/login" style={styles.footerLink}>Go to Student Login →</a>
+                            <a href="/auth/login" className="text-indigo-400 no-underline font-medium hover:text-indigo-300 transition-colors">Go to Student Login →</a>
                         </p>
                     </div>
                 </div>
 
                 {/* Security badge */}
-                <div style={styles.securityBadge}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
+                <div className="flex items-center justify-center gap-1.5 mt-5 text-white/25 text-[11px] font-medium tracking-[0.3px]">
+                    <ShieldCheck className="w-3 h-3" />
                     <span>Secured with JWT Authentication</span>
                 </div>
             </div>
 
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-                @keyframes blob {
-                    0%, 100% { transform: translate(0, 0) scale(1); }
-                    33% { transform: translate(30px, -50px) scale(1.1); }
-                    66% { transform: translate(-20px, 20px) scale(0.9); }
-                }
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
@@ -231,280 +197,6 @@ const AdminLoginView = () => {
             `}</style>
         </div>
     );
-};
-
-const styles = {
-    page: {
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f0c29 0%, #1a1a2e 40%, #16213e 70%, #0f3460 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: "'Inter', sans-serif",
-        position: 'relative',
-        overflow: 'hidden',
-        padding: '24px',
-    },
-    blob1: {
-        position: 'absolute',
-        top: '-100px',
-        left: '-100px',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)',
-        borderRadius: '50%',
-        animation: 'blob 8s ease-in-out infinite',
-        pointerEvents: 'none',
-    },
-    blob2: {
-        position: 'absolute',
-        bottom: '-80px',
-        right: '-80px',
-        width: '350px',
-        height: '350px',
-        background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)',
-        borderRadius: '50%',
-        animation: 'blob 10s ease-in-out infinite 2s',
-        pointerEvents: 'none',
-    },
-    blob3: {
-        position: 'absolute',
-        top: '50%',
-        left: '60%',
-        width: '300px',
-        height: '300px',
-        background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)',
-        borderRadius: '50%',
-        animation: 'blob 12s ease-in-out infinite 4s',
-        pointerEvents: 'none',
-    },
-    container: {
-        width: '100%',
-        maxWidth: '440px',
-        position: 'relative',
-        zIndex: 1,
-        animation: 'fadeIn 0.5s ease-out',
-    },
-    brand: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        marginBottom: '28px',
-        justifyContent: 'center',
-    },
-    logoRing: {
-        width: '52px',
-        height: '52px',
-        borderRadius: '14px',
-        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-    },
-    brandName: {
-        color: '#ffffff',
-        fontSize: '22px',
-        fontWeight: '700',
-        margin: 0,
-        letterSpacing: '-0.3px',
-    },
-    brandSub: {
-        color: 'rgba(255,255,255,0.45)',
-        fontSize: '12px',
-        fontWeight: '500',
-        margin: 0,
-        letterSpacing: '0.5px',
-        textTransform: 'uppercase',
-    },
-    card: {
-        background: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '24px',
-        padding: '36px',
-        boxShadow: '0 25px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
-    },
-    cardHeader: {
-        marginBottom: '28px',
-    },
-    cardTitle: {
-        color: '#ffffff',
-        fontSize: '22px',
-        fontWeight: '700',
-        margin: '0 0 6px 0',
-        letterSpacing: '-0.3px',
-    },
-    cardSubtitle: {
-        color: 'rgba(255,255,255,0.45)',
-        fontSize: '13px',
-        margin: 0,
-        fontWeight: '400',
-    },
-    errorBanner: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        background: 'rgba(239,68,68,0.12)',
-        border: '1px solid rgba(239,68,68,0.3)',
-        borderRadius: '10px',
-        padding: '12px 14px',
-        color: '#fca5a5',
-        fontSize: '13px',
-        marginBottom: '20px',
-        lineHeight: '1.4',
-    },
-    form: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-    },
-    fieldGroup: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-    },
-    label: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: '13px',
-        fontWeight: '500',
-        letterSpacing: '0.2px',
-    },
-    inputWrapper: {
-        position: 'relative',
-    },
-    inputIcon: {
-        position: 'absolute',
-        left: '14px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        color: 'rgba(255,255,255,0.35)',
-        display: 'flex',
-        alignItems: 'center',
-        pointerEvents: 'none',
-    },
-    input: {
-        width: '100%',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: '12px',
-        padding: '13px 14px 13px 42px',
-        color: '#ffffff',
-        fontSize: '14px',
-        outline: 'none',
-        transition: 'border-color 0.2s ease, background 0.2s ease',
-        boxSizing: 'border-box',
-        fontFamily: "'Inter', sans-serif",
-    },
-    inputError: {
-        borderColor: '#ef4444',
-    },
-    eyeBtn: {
-        position: 'absolute',
-        right: '14px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        color: 'rgba(255,255,255,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '4px',
-        transition: 'color 0.2s',
-    },
-    fieldError: {
-        color: '#f87171',
-        fontSize: '12px',
-        margin: 0,
-        fontWeight: '400',
-    },
-    submitBtn: {
-        width: '100%',
-        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '14px',
-        color: '#ffffff',
-        fontSize: '14px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        transition: 'opacity 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease',
-        boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
-        letterSpacing: '0.2px',
-        marginTop: '4px',
-        fontFamily: "'Inter', sans-serif",
-    },
-    submitBtnDisabled: {
-        opacity: 0.6,
-        cursor: 'not-allowed',
-    },
-    btnRow: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-    },
-    spinnerRow: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '10px',
-    },
-    spinner: {
-        width: '16px',
-        height: '16px',
-        border: '2px solid rgba(255,255,255,0.3)',
-        borderTopColor: '#ffffff',
-        borderRadius: '50%',
-        display: 'inline-block',
-        animation: 'spin 0.8s linear infinite',
-    },
-    footer: {
-        marginTop: '28px',
-    },
-    divider: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '16px',
-    },
-    dividerLine: {
-        flex: 1,
-        height: '1px',
-        background: 'rgba(255,255,255,0.1)',
-    },
-    dividerText: {
-        color: 'rgba(255,255,255,0.3)',
-        fontSize: '11px',
-        fontWeight: '500',
-        whiteSpace: 'nowrap',
-        letterSpacing: '0.3px',
-    },
-    footerNote: {
-        textAlign: 'center',
-        color: 'rgba(255,255,255,0.35)',
-        fontSize: '13px',
-        margin: 0,
-    },
-    footerLink: {
-        color: '#818cf8',
-        textDecoration: 'none',
-        fontWeight: '500',
-        transition: 'color 0.2s',
-    },
-    securityBadge: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        marginTop: '20px',
-        color: 'rgba(255,255,255,0.25)',
-        fontSize: '11px',
-        fontWeight: '500',
-        letterSpacing: '0.3px',
-    },
 };
 
 export default AdminLoginView;
