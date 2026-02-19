@@ -9,7 +9,7 @@ import { setCredentials } from '../../redux/slices/authSlice';
 import { authService } from '../../services/authService';
 import clientConfig from '../../config/clientConfig';
 import message from '../../utils/message';
-import { extractErrorMessage } from '../../utils/errorHandler';
+import { handleError } from '../../utils/errorHandler';
 
 const loginSchema = yup.object().shape({
     email: yup.string()
@@ -37,7 +37,7 @@ const LoginView = () => {
             }
         },
         onError: (error) => {
-            message.error(error.response?.data?.message || 'Login failed');
+            handleError(error, 'Login failed');
         }
     });
 

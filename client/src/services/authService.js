@@ -1,4 +1,5 @@
 import { instance } from "../utils/instance";
+import { logger } from "../utils/logger";
 
 /**
  * Authentication Service
@@ -12,7 +13,7 @@ export const authService = {
    */
   login: async (credentials) => {
     // POST /users/login
-    console.log(credentials);
+    // POST /users/login
     // Response data structure: { statusCode, success, message, data: { token, user } }
     const response = await instance.post("/users/login", credentials);
     return response.data; // Returns { token, user }
@@ -42,13 +43,13 @@ export const authService = {
 
   me: async () => {
     const response = await instance.get("/users/me");
-    console.log("[DEBUG] authService.me response:", response);
+    logger.debug("authService.me response:", response);
     return response.data;
   },
 
   updateMe: async (updates) => {
     const response = await instance.patch("/users/me", updates);
-    console.log("[DEBUG] authService.updateMe response:", response);
+    logger.debug("authService.updateMe response:", response);
     return response.data;
   },
 };

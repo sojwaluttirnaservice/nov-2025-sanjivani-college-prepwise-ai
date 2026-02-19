@@ -1,4 +1,5 @@
 import { instance } from "../utils/instance";
+import { logger } from "../utils/logger";
 
 const resourceService = {
   /**
@@ -27,8 +28,8 @@ const resourceService = {
       params.semester = filters.semester;
     }
 
-    console.log(
-      "[DEBUG] getSubjects called with filters:",
+    logger.debug(
+      "getSubjects called with filters:",
       filters,
       "params:",
       params,

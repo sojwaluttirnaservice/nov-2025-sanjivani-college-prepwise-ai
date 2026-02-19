@@ -1,5 +1,6 @@
 import { STUDENT_STATS } from "../data/student";
 import { instance } from "../utils/instance";
+import { logger } from "../utils/logger";
 
 // Mock Data
 const MOCK_SUBJECTS = [
@@ -53,11 +54,11 @@ const MOCK_QUESTIONS = [
 export const studentService = {
   getStats: async () => {
     const response = await instance.get("/analytics/dashboard");
-    console.log(
+    logger.log(
       "[Service] getStats - Full response from interceptor:",
       response,
     );
-    console.log("[Service] getStats - response.data:", response.data);
+    logger.log("[Service] getStats - response.data:", response.data);
     // Interceptor already returns response.data, so response IS the API envelope
     // API structure: { statusCode, success, data: { stats: {...} } }
     return response.data; // This returns { stats: {...} }
@@ -65,11 +66,8 @@ export const studentService = {
 
   getDashboardStats: async () => {
     const response = await instance.get("/analytics/dashboard");
-    console.log("[Service] Dashboard - Full interceptor response:", response);
-    console.log(
-      "[Service] Dashboard - response.data (payload):",
-      response.data,
-    );
+    logger.log("[Service] Dashboard - Full interceptor response:", response);
+    logger.log("[Service] Dashboard - response.data (payload):", response.data);
     // Interceptor already unwrapped, response = { statusCode, success, data: {...} }
     return response.data; // Returns { stats: {...} }
   },
@@ -78,7 +76,7 @@ export const studentService = {
     const response = await instance.get(
       `/analytics/performance?range=${range}`,
     );
-    console.log(
+    logger.log(
       `[Service] Performance (${range}) - response.data:`,
       response.data,
     );
@@ -87,7 +85,7 @@ export const studentService = {
 
   getTopicMastery: async () => {
     const response = await instance.get("/analytics/topics");
-    console.log("[Service] Topics - response.data:", response.data);
+    logger.log("[Service] Topics - response.data:", response.data);
     return response.data; // Returns { topics: [...] }
   },
 
