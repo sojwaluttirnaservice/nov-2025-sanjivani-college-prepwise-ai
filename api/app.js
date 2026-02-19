@@ -29,7 +29,7 @@ var app = express();
 //   // credentials: true, // Allow sending cookies
 // }))
 
-connectDB();
+// connectDB(); // Called in bin/www now
 
 app.use(cors());
 

@@ -30,6 +30,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import StudentListView from './modules/admin/StudentListView'
 import StudentDetailView from './modules/admin/StudentDetailView'
+import AcademicManagementView from './modules/admin/AcademicManagementView'
+import SubjectCurriculumView from './modules/admin/SubjectCurriculumView'
 
 const App = () => {
     return (
@@ -77,6 +79,8 @@ const App = () => {
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="/admin/students" element={<StudentListView />} />
                         <Route path="/admin/students/:id" element={<StudentDetailView />} />
+                        <Route path="/admin/academics" element={<AcademicManagementView />} />
+                        <Route path="/admin/academics/subjects/:subjectId" element={<SubjectCurriculumView />} />
                         <Route path="/admin/activity" element={<div>Activity Logs</div>} />
                         <Route path="/admin/assessments" element={<div>Question Bank</div>} />
                     </Route>

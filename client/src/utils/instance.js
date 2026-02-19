@@ -1,5 +1,5 @@
 import axios from "axios";
-import toast from "react-hot-toast";
+import messageUtil from "./message";
 import clientConfig from "../config/clientConfig";
 
 const instance = axios.create({
@@ -34,10 +34,10 @@ instance.interceptors.response.use(
     // Handle errors
     if (error.response) {
       // Server responded with error status
-      const { statusCode, message } = error.response.data;
+      const { statusCode, message: apiMessage } = error.response.data;
 
       // Show error toast
-      toast.error(message || "Something went wrong!");
+      messageUtil.error(apiMessage || "Something went wrong!");
 
       // Handle specific status codes
       if (statusCode === 401) {
@@ -48,10 +48,10 @@ instance.interceptors.response.use(
       }
     } else if (error.request) {
       // Request made but no response received
-      toast.error("Network error. Please check your connection.");
+      messageUtil.error("Network error. Please check your connection.");
     } else {
       // Something else happened
-      toast.error("An unexpected error occurred.");
+      messageUtil.error("An unexpected error occurred.");
     }
 
     return Promise.reject(error);

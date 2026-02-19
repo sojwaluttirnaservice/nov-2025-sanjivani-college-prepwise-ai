@@ -6,7 +6,8 @@ import Container from '../../components/utils/Container';
 import { assessmentService } from '../../services/assessmentService';
 import { studentService } from '../../services/studentService';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
+import message from '../../utils/message';
+import { handleError } from '../../utils/errorHandler';
 
 const AssessmentResultsView = ({ data }) => {
     const location = useLocation();
@@ -52,25 +53,22 @@ const AssessmentResultsView = ({ data }) => {
         mutationFn: async (attemptId) => {
             // Show processing message after 30 seconds
             const processingTimeout = setTimeout(() => {
-                toast.loading('Still processing... This may take a minute for complex analysis.', {
-                    id: 'notes-processing',
-                    duration: 30000
-                });
+                message.loading('Still processing... This may take a minute for complex analysis.');
             }, 30000);
 
             try {
                 const result = await studentService.generateStudyNotes(attemptId);
                 clearTimeout(processingTimeout);
-                toast.dismiss('notes-processing');
+                message.dismiss('notes-processing');
                 return result;
             } catch (error) {
                 clearTimeout(processingTimeout);
-                toast.dismiss('notes-processing');
+                message.dismiss('notes-processing');
                 throw error;
             }
         },
         onSuccess: (data) => {
-            toast.success('AI Boost Notes generated successfully!');
+            message.success('AI Boost Notes generated successfully!');
             refetchNotes();
             setSelectedNote(data.note);
             setIsNoteModalOpen(true);
@@ -78,15 +76,13 @@ const AssessmentResultsView = ({ data }) => {
         onError: (error) => {
             // Handle timeout specifically
             if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-                toast.loading(
-                    '⏳ Your notes are being prepared in the background! They\'ll appear in a few moments. Feel free to refresh in 1-2 minutes.',
-                    { duration: 8000 }
+                message.loading(
+                    '⏳ Your notes are being prepared in the background! They\'ll appear in a few moments. Feel free to refresh in 1-2 minutes.'
                 );
                 // Refetch after a delay to check if notes appeared
                 setTimeout(() => refetchNotes(), 10000);
             } else {
-                const errorMsg = error.response?.data?.message || 'Failed to generate AI notes';
-                toast.error(errorMsg);
+                handleError(error, 'Failed to generate AI notes');
             }
         }
     });
@@ -113,17 +109,17 @@ const AssessmentResultsView = ({ data }) => {
             setLocalAttempts(data.result.analysisAttempts); // Never client-side increment
             setLocalLog(data.result.analysisLog);
 
-            toast.success('Analysis updated successfully');
+            message.success('Analysis updated successfully');
         } catch (error) {
             console.error(error);
 
             // Handle limit reached (403 Forbidden)
             if (error?.response?.status === 403) {
-                toast.error('Maximum re-analysis attempts reached');
+                message.error('Maximum re-analysis attempts reached');
                 // Lock UI by setting to limit
                 setLocalAttempts(2);
             } else {
-                toast.error(error?.response?.data?.message || 'Failed to re-analyze');
+                handleError(error, 'Failed to re-analyze');
             }
         } finally {
             setIsAnalyzing(false);

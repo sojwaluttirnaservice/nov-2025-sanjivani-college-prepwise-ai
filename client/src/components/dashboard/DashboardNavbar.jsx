@@ -1,19 +1,25 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../../redux/slices/authSlice'
-import { Bell, User } from 'lucide-react'
+import { Bell, User, Menu } from 'lucide-react'
 import clientConfig from '../../config/clientConfig'
 
-const DashboardNavbar = () => {
+const DashboardNavbar = ({ onToggleSidebar }) => {
     const user = useSelector(selectCurrentUser)
 
     const appNameParts = clientConfig.APP_NAME.split(' ')
     const firstPart = appNameParts.slice(0, -1).join(' ') || appNameParts[0]
 
     return (
-        <header className="z-50 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0">
-            {/* Left side (Mobile Toggle placeholder could go here) */}
-            <div className="flex items-center md:hidden">
+        <header className="z-40 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0">
+            {/* Left side (Mobile Toggle) */}
+            <div className="flex items-center gap-3 md:hidden">
+                <button
+                    onClick={onToggleSidebar}
+                    className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                    <Menu className="w-6 h-6" />
+                </button>
                 <div className="text-xl font-bold text-indigo-600">{firstPart}</div>
             </div>
 

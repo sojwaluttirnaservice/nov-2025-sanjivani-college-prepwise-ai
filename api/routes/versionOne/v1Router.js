@@ -7,6 +7,7 @@ const v1Router = getRouter();
 v1Router.use("/users", usersRouter);
 v1Router.use("/resources", resourcesRouter);
 v1Router.use("/assessments", require("./assessments.routes"));
+v1Router.use("/admin", require("./v1Routes/adminRouter"));
 
 // Analytics Routes
 const analyticsRouter = getRouter();

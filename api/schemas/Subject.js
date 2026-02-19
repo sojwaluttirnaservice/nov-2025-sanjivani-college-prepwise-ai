@@ -8,12 +8,21 @@ const subjectSchema = new mongoose.Schema(
       trim: true, // e.g. "Programming in C"
     },
 
-    branchId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Branch",
+    code: {
+      type: String,
       required: true,
-      index: true,
+      trim: true,
+      uppercase: true, // e.g. "22CS101"
     },
+
+    branches: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Branch",
+        required: true,
+        index: true,
+      },
+    ],
 
     semester: {
       type: Number,
@@ -21,11 +30,17 @@ const subjectSchema = new mongoose.Schema(
       min: 1,
       max: 8,
     },
+
+    credits: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true },
 );
 
-subjectSchema.index({ branchId: 1, semester: 1 });
+subjectSchema.index({ branches: 1, semester: 1 });
 
 const Subject =
   mongoose.models.Subject || mongoose.model("Subject", subjectSchema);

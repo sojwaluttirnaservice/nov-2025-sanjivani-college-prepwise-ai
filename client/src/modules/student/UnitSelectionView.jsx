@@ -5,8 +5,8 @@ import { ListChecks, Play, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { resourceService } from '../../services/resourceService';
 import { assessmentService } from '../../services/assessmentService';
 import Container from '../../components/utils/Container';
-import toast from 'react-hot-toast';
-import { extractErrorMessage } from '../../utils/errorHandler';
+import message from '../../utils/message';
+import { handleError } from '../../utils/errorHandler';
 import { Accordion, AccordionItem } from '../../components/ui/Accordion';
 
 const UnitSelectionView = () => {
@@ -34,7 +34,7 @@ const UnitSelectionView = () => {
             setGeneratingUnit(null);
 
             if (assessmentData.resumed) {
-                toast.success('Resuming your active assessment', { icon: '🔄' });
+                message.success('Resuming your active assessment', { icon: '🔄' });
             }
 
             navigate('/assessment/attempt', {
@@ -52,12 +52,9 @@ const UnitSelectionView = () => {
 
             // Handle quota/capacity errors (503)
             if (error?.response?.status === 503) {
-                toast.error('We are experiencing high demand. Please try again in a few minutes.', {
-                    duration: 5000,
-                    icon: '⏳'
-                });
+                message.error('We are experiencing high demand. Please try again in a few minutes.', '⏳');
             } else {
-                toast.error(extractErrorMessage(error, 'Failed to generate assessment. Please try again.'));
+                handleError(error, 'Failed to generate assessment. Please try again.');
             }
         }
     };

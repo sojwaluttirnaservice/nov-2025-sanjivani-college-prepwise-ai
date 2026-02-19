@@ -162,7 +162,7 @@ const usersController = {
     if (existingUser.role === "STUDENT") {
       if (!nextBranchId || !nextSemester || !nextYear) {
         throw new AppError(
-          "Student must have branchId, year, and semester",
+          "Student must have a valid Branch, Year, and Semester",
           STATUS.BAD_REQUEST,
         );
       }

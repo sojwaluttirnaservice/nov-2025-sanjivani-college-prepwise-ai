@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { selectIsAuthenticated, selectCurrentUser } from '../../redux/slices/authSlice';
+import { selectIsAuthenticated, selectCurrentUser, ROLES } from '../../redux/slices/authSlice';
 
 /**
  * PublicRoute Guard
