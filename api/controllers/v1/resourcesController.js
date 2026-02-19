@@ -29,7 +29,7 @@ const resourcesController = {
     const matchStage = {};
 
     if (branchId) {
-      matchStage.branchId = new mongoose.Types.ObjectId(branchId);
+      matchStage.branches = new mongoose.Types.ObjectId(branchId); // Mongoose automatically handles searching in array
     }
 
     if (semester) {
@@ -51,7 +51,8 @@ const resourcesController = {
           name: 1,
           code: 1,
           semester: 1,
-          branchId: 1,
+          branches: 1,
+          credits: 1,
           units: { $size: "$unitsData" },
         },
       },

@@ -3,17 +3,26 @@ const mongoose = require("mongoose");
 const Branch = require("../schemas/Branch");
 const config = require("../config/config");
 
+const BRANCHES = [
+  { name: "Computer Engineering" },
+  { name: "Mechanical Engineering" },
+];
+
 async function seedBranches() {
   await mongoose.connect(config.db.uri);
 
-  await Branch.deleteMany();
+  let seeded = 0;
+  for (const branch of BRANCHES) {
+    const existing = await Branch.findOne({ name: branch.name });
+    if (!existing) {
+      await Branch.create(branch);
+      seeded++;
+    }
+  }
 
-  const branches = await Branch.insertMany([
-    { name: "Computer Engineering" },
-    { name: "Mechanical Engineering" },
-  ]);
-
-  console.log("Branches seeded:", branches);
+  console.log(
+    `✅ Branches: ${seeded} added, ${BRANCHES.length - seeded} already existed — skipped.`,
+  );
 }
 
 module.exports = seedBranches;

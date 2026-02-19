@@ -1,3 +1,5 @@
+import message from "./message";
+
 /**
  * extractErrorMessage
  * Utility to extract the error message from an API response error object.
@@ -17,4 +19,18 @@ export const extractErrorMessage = (
     return error.message;
   }
   return defaultMessage;
+};
+
+/**
+ * handleError
+ * Utility to extract the error message and display it using the message utility.
+ *
+ * @param {any} error - The error object.
+ * @param {string} defaultMessage - Fallback message.
+ * @returns {string} - The extracted message (in case it's needed).
+ */
+export const handleError = (error, defaultMessage) => {
+  const msg = extractErrorMessage(error, defaultMessage);
+  message.error(msg);
+  return msg;
 };

@@ -1,14 +1,13 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { BarChart2, Book, CheckSquare, ClipboardList, User, LogOut } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { BarChart2, Book, CheckSquare, ClipboardList, User } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
 import DashboardNavbar from '../components/dashboard/DashboardNavbar';
-import { selectCurrentUser, logout } from '../redux/slices/authSlice';
-import toast from 'react-hot-toast';
+import { logout } from '../redux/slices/authSlice';
+import message from '../utils/message';
 
 const StudentLayout = () => {
-    const user = useSelector(selectCurrentUser);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -22,19 +21,25 @@ const StudentLayout = () => {
 
     const handleLogout = () => {
         dispatch(logout());
-        toast.success('Logged out successfully');
+        message.success('Logged out successfully');
         navigate('/auth/login');
     };
 
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
     return (
-        <div className="flex bg-slate-50 min-h-screen">
+        <div className="flex bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-50/50 via-slate-50 to-slate-100 min-h-screen">
             <Sidebar
                 roleName="STUDENT"
                 links={studentLinks}
                 onLogout={handleLogout}
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
             />
             <div className="flex-1 md:ml-64 flex flex-col">
-                <DashboardNavbar />
+                <DashboardNavbar onToggleSidebar={toggleSidebar} />
                 <main className="flex-1">
                     <Outlet />
                 </main>

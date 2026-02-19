@@ -5,7 +5,7 @@ import Container from './utils/Container'
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../redux/slices/authSlice'
 import { LogOut, User } from 'lucide-react'
 
-import toast from 'react-hot-toast'
+import message from '../utils/message'
 import clientConfig from '../config/clientConfig'
 
 const Navbar = () => {
@@ -20,7 +20,7 @@ const Navbar = () => {
 
     const handleLogout = () => {
         dispatch(logout())
-        toast.success('Logged out successfully')
+        message.success('Logged out successfully')
         navigate('/auth/login')
     }
 
