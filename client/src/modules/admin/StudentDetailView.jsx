@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { adminService } from '../../services/adminService';
@@ -199,9 +200,9 @@ const StudentDetailView = () => {
                 </div>
             </div>
 
-            {/* View as Student Modal */}
-            {isViewAsStudentOpen && (
-                <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 animate-in fade-in duration-200">
+            {/* View as Student Modal - Rendered via Portal */}
+            {isViewAsStudentOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex flex-col bg-slate-50 animate-in fade-in duration-200">
                     <div className="bg-slate-900 text-white px-6 py-3 flex justify-between items-center shadow-md shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="bg-indigo-500/20 p-2 rounded-lg">
@@ -223,7 +224,8 @@ const StudentDetailView = () => {
                     <div className="flex-1 overflow-auto">
                         <StudentDashboardView studentId={id} />
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
