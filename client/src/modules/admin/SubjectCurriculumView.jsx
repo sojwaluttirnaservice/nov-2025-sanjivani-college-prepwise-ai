@@ -19,6 +19,10 @@ const SubjectCurriculumView = () => {
     const [newTopicName, setNewTopicName] = useState('');
     const [newUnitName, setNewUnitName] = useState('');
 
+    // Edit State
+    const [editUnitName, setEditUnitName] = useState('');
+    const [editTopicName, setEditTopicName] = useState('');
+
     const [newUnitNumber, setNewUnitNumber] = useState('');
 
     // Confirmation Modal State
@@ -106,6 +110,36 @@ const SubjectCurriculumView = () => {
     });
 
     // --- HANDLERS ---
+    const startEditUnit = (unit) => {
+        setEditingUnitId(unit._id);
+        setEditUnitName(unit.name);
+    };
+
+    const cancelEditUnit = () => {
+        setEditingUnitId(null);
+        setEditUnitName('');
+    };
+
+    const saveEditUnit = (unitId) => {
+        if (!editUnitName.trim()) return;
+        updateUnitMutation.mutate({ id: unitId, data: { name: editUnitName } });
+    };
+
+    const startEditTopic = (topic) => {
+        setEditingTopicId(topic._id);
+        setEditTopicName(topic.name);
+    };
+
+    const cancelEditTopic = () => {
+        setEditingTopicId(null);
+        setEditTopicName('');
+    };
+
+    const saveEditTopic = (topicId) => {
+        if (!editTopicName.trim()) return;
+        updateTopicMutation.mutate({ id: topicId, name: editTopicName });
+    };
+
     const handleAddUnit = (e) => {
         e.preventDefault();
         if (!newUnitName || !newUnitNumber) return;
@@ -133,7 +167,7 @@ const SubjectCurriculumView = () => {
         setConfirmModal({
             isOpen: true,
             title: 'Delete Unit?',
-            message: 'Are you sure you want to delete this unit? All topics inside it will remain but become orphaned. This action cannot be undone.',
+            message: 'Are you sure you want to delete this unit? All topics inside it will deleted. This action cannot be undone.',
             onConfirm: () => {
                 setConfirmModal(prev => ({ ...prev, isLoading: true }));
                 deleteUnitMutation.mutate(unitId);
@@ -248,28 +282,69 @@ const SubjectCurriculumView = () => {
                                             onClick={() => toggleUnit(unit._id)}
                                         >
                                             <div className="flex items-center gap-4 flex-1">
-                                                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg border border-indigo-100">
+                                                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg border border-indigo-100 shrink-0">
                                                     {unit.unitNumber}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-bold text-slate-800 text-lg">{unit.name}</h3>
-                                                    <div className="text-xs font-medium text-slate-500 flex items-center gap-1.5 mt-0.5">
-                                                        <FileText className="w-3.5 h-3.5" />
-                                                        {unit.topics?.length || 0} Topics
-                                                    </div>
+                                                <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+                                                    {editingUnitId === unit._id ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="text"
+                                                                value={editUnitName}
+                                                                onChange={(e) => setEditUnitName(e.target.value)}
+                                                                className="flex-1 px-3 py-1.5 bg-white border border-indigo-300 rounded-lg text-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                                                autoFocus
+                                                            />
+                                                            <button
+                                                                onClick={() => saveEditUnit(unit._id)}
+                                                                disabled={updateUnitMutation.isPending}
+                                                                className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+                                                            >
+                                                                <Check className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={cancelEditUnit}
+                                                                className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <h3 className="font-bold text-slate-800 text-lg">{unit.name}</h3>
+                                                            <div className="text-xs font-medium text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                                                <FileText className="w-3.5 h-3.5" />
+                                                                {unit.topics?.length || 0} Topics
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <button
-                                                    onClick={(e) => handleDeleteUnit(e, unit._id)}
-                                                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                                                    title="Delete Unit"
-                                                >
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
-                                                <div className="text-slate-400">
-                                                    {expandedUnit === unit._id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                                </div>
+                                            <div className="flex items-center gap-2">
+                                                {!editingUnitId && (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                startEditUnit(unit);
+                                                            }}
+                                                            className="p-2 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all"
+                                                            title="Edit Unit"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => handleDeleteUnit(e, unit._id)}
+                                                            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                            title="Delete Unit"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                        <div className="text-slate-400 pl-1">
+                                                            {expandedUnit === unit._id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
 
@@ -283,15 +358,55 @@ const SubjectCurriculumView = () => {
                                                     {unit.topics && unit.topics.length > 0 ? (
                                                         unit.topics.map((topic) => (
                                                             <div key={topic._id} className="group flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-indigo-200 hover:shadow-sm transition-all">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                                                                <span className="flex-1 font-medium text-slate-700">{topic.name}</span>
-                                                                <button
-                                                                    onClick={() => handleDeleteTopic(topic._id)}
-                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 transition-all"
-                                                                    title="Delete Topic"
-                                                                >
-                                                                    <X className="w-4 h-4" />
-                                                                </button>
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></div>
+
+                                                                <div className="flex-1">
+                                                                    {editingTopicId === topic._id ? (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={editTopicName}
+                                                                                onChange={(e) => setEditTopicName(e.target.value)}
+                                                                                className="flex-1 px-2 py-1 bg-white border border-indigo-300 rounded text-sm font-medium text-slate-700 focus:ring-1 focus:ring-indigo-200 outline-none"
+                                                                                autoFocus
+                                                                            />
+                                                                            <button
+                                                                                onClick={() => saveEditTopic(topic._id)}
+                                                                                disabled={updateTopicMutation.isPending}
+                                                                                className="p-1 text-indigo-600 hover:bg-indigo-100 rounded"
+                                                                            >
+                                                                                <Check className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={cancelEditTopic}
+                                                                                className="p-1 text-slate-500 hover:bg-slate-200 rounded"
+                                                                            >
+                                                                                <X className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="font-medium text-slate-700">{topic.name}</span>
+                                                                    )}
+                                                                </div>
+
+                                                                {!editingTopicId && (
+                                                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <button
+                                                                            onClick={() => startEditTopic(topic)}
+                                                                            className="p-1.5 text-slate-400 hover:text-indigo-500 transition-all"
+                                                                            title="Edit Topic"
+                                                                        >
+                                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeleteTopic(topic._id)}
+                                                                            className="p-1.5 text-slate-400 hover:text-rose-500 transition-all"
+                                                                            title="Delete Topic"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))
                                                     ) : (
