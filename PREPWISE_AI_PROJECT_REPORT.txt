@@ -1,0 +1,94 @@
+Project Report: PrepWise AI (Adaptive Learning Platform)
+
+1. Complete List of Features
+The system is divided into two primary interfaces: Student and Administrator.
+
+Student Features:
+* Adaptive Assessment Engine: Dynamic quizzing system that begins with a Diagnostic quiz to establish baseline knowledge, transitioning into Adaptive quizzes tailored to target weak areas.
+* Mid-Exam State Resumption: Real-time saving of assessment states, allowing students to seamlessly resume unfinished quizzes with timers exactly where they left off.
+* Performance Analytics Dashboard: Provides live statistical monitoring including study streaks, total study hours, average scores, and a GitHub-style activity heatmap.
+* Topic Mastery Breakdown: Granular analysis of strengths and weaknesses across all assessment attempts.
+* AI Performance Analysis: On-demand AI-generated constructive feedback on assessment attempts (quota-limited to prevent abuse).
+* Boost Vault (AI Study Notes): On-the-fly generation of targeted study materials based strictly on the student's incorrect answers. 
+
+Admin Features:
+* Centralized Student Management: Searchable, paginated dashboard detailing individual student profiles and their entire assessment histories.
+* "View as Student" Mode: Live portal overlay allowing admins to seamlessly audit exactly what a specific student sees in their web dashboard.
+* Academic Curriculum Management: Full CRUD operations for creating distinct educational hierarchies (Branch -> Subject -> Unit -> Topic).
+* System-Wide Analytics: Global tracking of platform activity, total assessments taken, and broad student performance.
+
+2. System Architecture
+PrepWise AI employs a decoupled, Service-Oriented Architecture (SOA) leveraging a modern MERN-like Stack with real-time AI API integrations.
+* Frontend (Client Presentation Layer): A React/Vite-based Single Page Application (SPA). It utilizes Redux Toolkit for global app state and TanStack Query (React Query) for robust server-state caching, automatic refetching, and deduping.
+* Backend (API & Logic Layer): Built on Node.js and Express. It uses a custom-built stateless middleware pipeline ensuring sequential processing (CORS -> Body Parsers -> Versioned Routers api/v1 -> Global Error Handlers).
+* AI/LLM Abstraction Layer: Implements a strict Factory & Singleton Design Pattern (LLMFactory). It abstracts vendor-specific logic allowing the backend to dynamically hot-swap between OpenAI GPT-4 and Google Gemini by simply changing an environment variable. 
+* Database & Caching Layer: Uses MongoDB hosted via Atlas. It heavily incorporates Database-Level TTLs (Time-to-Live) to automate cache invalidation without requiring a standalone caching server like Redis.
+
+3. Modules in the System
+1. Authentication & Authorization Module: Handles user registration, JWT generation, secure bcrypt password verification, and stateless session validation.
+2. Academic Management Module: Controls the structural spine of the DB. Handles dependencies between Branches, Subjects, Units, and Topics.
+3. Assessment & State Machine Module: Tracks the student's Learning State Machine (NOT_STARTED -> DIAGNOSTIC -> IN_PROGRESS -> MASTERED).
+4. AI Invocation & Context Module: Gathers context (e.g., pulling a student's wrong answers), formulates optimized AI prompts, requests completions, and sanitizes/validates the JSON output.
+5. Analytics & Aggregation Module: Responsible for processing raw historical attempt data into digestible graphs and metrics using heavy database-native aggregations.
+6. Admin Dashboard Module: Privileged routes explicitly guarded by isAdmin role-checking middlewares.
+
+4. Database Design (Tables and Relationships)
+The core schema relies heavily on Mongoose references to connect academic mappings with user attempt progression:
+
+* User: Stores name, email, hashed password (with select: false default exclusion), role (STUDENT/ADMIN), and academic identifiers (branchId, year, semester). 
+* Academic Hierarchy Collections: 
+  * Branch (id, name, code) -> Subject (id, branchId) -> Unit (id, subjectId) -> Topic (id, weight, unitId).
+* Question (Pool Cache): A centralized AI question cache storing unitId, topicId, questionText, options, correctOption, and difficulty.
+* QuizAttempt (Write-Heavy Core): Tracks actual student sessions. Relates to userId, quizId, and unitAttemptId. Stores arrays of answers, calculated scores, timeSpent, and an append-only analysisLog for AI feedback history.
+* UnitAttempt (State Tracking): Tracks the macro-level state of a user in a unit. Fields include state (e.g. MASTERED), topicAnalysis arrays (weak vs strong topics). Provides referential link userId + unitId.
+* AnalysisCache & StudyNote: Caches LLM outputs against attemptId and unitId with an expiresAt MongoDB TTL index for automated lifecycle management.
+
+5. Technologies Used
+* Frontend Ecosystem: React.js v18, Vite (bundler), Tailwind CSS (styling), Lucide React (icons), Redux Toolkit, TanStack Query v5.
+* Backend Ecosystem: Node.js v18+, Express.js framework, Bcrypt.js (encryption), JSON Web Tokens (sessionless state).
+* Database Ecosystem: MongoDB, Mongoose ORM.
+* External AI APIs: OpenAI API SDK (GPT-4), Google Generative AI SDK (Gemini).
+
+6. Backend Workflow
+1. Request Pipeline: User triggers API -> Token Verification -> Role Authorization Middleware -> Controller function.
+2. Assessment Generation Example: 
+   * User requests a quiz. The system queries the UnitAttempt to check their status. 
+   * It builds a parameter map and hits the Question Pool Model. 
+   * Pool Hit: Uses existing cached AI questions (saves LLM tokens). Pool Miss: Instantiates the LLMFactory to asynchronously generate topic-weighted questions.
+   * The backend deliberately strips the correctOption node out of the JSON object before sending it to the client.
+3. Submission Processing: User submits answers -> backend maps against true correctOptions -> calculates percentages -> updates the Learning State Machine (UnitAttempt document) -> returns metrics.
+
+7. APIs Used
+* Internal Proprietary REST API: Custom-built Node/Express endpoints. Strongly versioned (/api/v1/*). Includes modules like /auth, /users, /assessments, /analytics, /admin, and /resources.
+* OpenAI REST API: Used to securely dispatch context prompts for generating code snippets, diagnostic quizzes, and AI performance analysis logs.
+* Google Gemini API: Utilized as a redundant, configurable fallback or primary AI generator via the unified Provider Factory.
+
+8. AI/LLM Components Used
+AI is intelligently interwoven into the backend via three distinct features:
+* Question Generation Server: Generates MCQs calibrated to topic weights. Output is strictly validated against custom JSON Schemas by the server to prevent format corruption.
+* Performance Analyst: Deeply populates historical context arrays to write targeted performance feedback. 
+* Note Synthesizer (Boost Vault): Cross-references specifically what questions a student got wrong during an attempt to synthesize targeted revision study notes directly tackling those gaps.
+
+9. Queue Systems / Async Processing
+PrepWise AI replaces traditional heavy Message Queues (like RabbitMQ) with optimized Database-Level asynchronous handling to dramatically simplify the local deployment requirements:
+* Cron Replacements: Uses MongoDB TTL (Time To Live) Indexes to automatically expire and sweep out the AnalysisCache after 30 days securely without hanging async cron intervals.
+* Debouncing & Throttling: The Admin dashboard utilizes React useDebounce hooks to control payload storms, shifting "Queueing" pressure from the backend directly onto controlled client delays (e.g., executing searches only 300ms after final keystrokes).
+* Asynchronous Analytics Pipelines: Employs massive multi-stage MongoDB Aggregation Pipelines ($lookup, $unwind, $group) allowing complex metric counting (like Streak, Hours Studied) to be processed natively on the C++ database thread rather than synchronously blocking the main Node.js V8 event thread.
+
+10. Security Considerations
+* Stateless JWT Authorization: Reduces server compromise footprints, providing strict verification.
+* LLM Quote Abuse Protections: Uses strict Atomic MongoDB Operations (findOneAndUpdate with $lt: 2 decrements). This completely prevents "Race Conditions" where two overlapping web requests could spawn infinite AI API calls.
+* Data Masking: Mongoose schema select: false actively blocks MongoDB from physically transmitting the bcrypt password hashes on any query avoiding accidental network sniffing.
+* Cheat Prevention: Complete payload sanitization for assessments. The browser physically never receives the answer keys prior to submission. 
+
+11. Deployment Architecture
+* Current Structure: Standard containerizable Node backend on a discrete server port, running an independent Vite Dev/Build server targeting a cloud MongoDB Atlas cluster.
+* The architecture heavily advocates for Horizontal Scaling due to stateless JWT sessions. The Node backend essentially acts as an immutable worker node, allowing simple load balancing (e.g., AWS EC2 Auto Scaling or Vercel Edge functions on Frontend).
+
+12. Future Improvements
+* RBAC Architecture Expansion: Granular Role-Based Access Control allowing Teacher level scopes nested under Admins.
+* Item Response Theory (IRT): Evolve the quiz structure from strict topic mappings to dynamic IRT difficulty calibration.
+* Rate Limits: Introduction of Redis-backed API throttling limiters per IP to prevent DDoS vectoring on API routes.
+* Advanced Audit Log Tracking: Implemented permanent ledgering for administrative actions (curriculum updates, profile manipulations).
+* OAuth Integrations: Social login integrations alongside base JWT/Email auth. 
+* Email Verifications & CRONs: Incorporate an actual job queue (BullMQ/Agenda) specifically for handling external mailing microservices.
